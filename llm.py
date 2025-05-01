@@ -1,10 +1,11 @@
-import typing as t
+from jinja2 import Template
 from json import load
 from os import listdir
 from os.path import getsize
+from requests import request, RequestException
 from subprocess import Popen, PIPE, run
-from requests import request
-from jinja2 import Template
+from threading import Lock
+import typing as t
 
 
 __all__ = [
@@ -22,13 +23,31 @@ class LLaMaCPP:
     def __init__(self):
         self._model_name = None
         self._process = None
+        self._readers = 0
+        self._read_lock = Lock()
+        self._write_lock = Lock()
+
+    def _add_reader(self):
+        with self._read_lock:
+            self._readers += 1
+            if self._readers == 1:
+                self._write_lock.acquire()
+
+    def _remove_reader(self):
+        with self._read_lock:
+            self._readers -= 1
+            if self._readers == 0:
+                self._write_lock.release()
 
     def set_model(self, model_name: str) -> None:
         if model_name not in self.list_available_models():
             raise Exception(f"Model {model_name} not found")
-        self._model_name = model_name
+        with self._write_lock:
+            self._model_name = model_name
 
     def load_model(self, seed: int = None, threads: int = None, kv_cache_type: t.Optional[t.Literal['f16', 'bf16', 'q8_0', 'q5_0', 'q4_0']] = None, context: int = None, temperature: float = None, top_p: float = None, top_k: int = None, min_p: float = None) -> None:
+        if self.process_is_alive():
+            raise Exception("A model is already loaded. Use stop() before loading a new model.")
         if self._model_name is None:
             raise Exception("Model not set")
         short_name = self.short_model_name(self._model_name)
@@ -49,29 +68,30 @@ class LLaMaCPP:
             top_k = LLMS[short_name]['sampling']['top_k']
         if min_p is None:
             min_p = LLMS[short_name]['sampling']['min_p']
-        offload_layers = calculate_offload_layers(self._model_name, short_name)
-        print(f"Loading model {self._model_name} with {offload_layers} layers offloaded")
-        command = [
-            '/opt/llama.cpp/bin/llama-server',
-            '--threads', str(threads),
-            '--ctx-size', str(context),
-            '--flash-attn',
-            '--no-escape',
-            '--cache-type-k', kv_cache_type,
-            '--cache-type-v', kv_cache_type,
-            '--mlock',
-            '--n-gpu-layers', str(offload_layers),
-            '--model', f'/opt/llms/{self._model_name}',
-            '--seed', str(seed),
-            '--temp', str(temperature),
-            '--top-k', str(top_k),
-            '--top-p', str(top_p),
-            '--min-p', str(min_p),
-            '--host', '127.0.0.1',
-            '--port', '8432',
-            '--alias', short_name,
-        ]
-        self._process = Popen(command, stdout=PIPE, stderr=PIPE, text=True)
+        with self._write_lock:
+            offload_layers = calculate_offload_layers(self._model_name, short_name)
+            print(f"Loading model {self._model_name} with {offload_layers} layers offloaded")
+            command = [
+                '/opt/llama.cpp/bin/llama-server',
+                '--threads', str(threads),
+                '--ctx-size', str(context),
+                '--flash-attn',
+                '--no-escape',
+                '--cache-type-k', kv_cache_type,
+                '--cache-type-v', kv_cache_type,
+                '--mlock',
+                '--n-gpu-layers', str(offload_layers),
+                '--model', f'/opt/llms/{self._model_name}',
+                '--seed', str(seed),
+                '--temp', str(temperature),
+                '--top-k', str(top_k),
+                '--top-p', str(top_p),
+                '--min-p', str(min_p),
+                '--host', '127.0.0.1',
+                '--port', '8432',
+                '--alias', short_name,
+            ]
+            self._process = Popen(command, stdout=PIPE, stderr=PIPE, text=True)
         return None
 
     def apply_chat_template(self, conversation: t.List[t.Dict[str, str]], enable_thinking: bool = False) -> str:
@@ -93,7 +113,7 @@ class LLaMaCPP:
             options['enable_thinking'] = False
         return template.render(**options)
 
-    def generate(self, prompt: t.Union[str, t.List[t.Dict[str, str]]], enable_thinking: bool = False, temperature: float = None, top_k: int = None, top_p: float = None, min_p: float = None, n_predict: int = None, grammar: str = None, seed: int = None) -> str:
+    def generate(self, prompt: t.Union[str, t.List[t.Dict[str, str]]], enable_thinking: bool = False, temperature: float = None, top_k: int = None, top_p: float = None, min_p: float = None, n_predict: int = None, grammar: str = None, seed: int = None) -> str:  # type: ignore
         if isinstance(prompt, list):
             prompt = self.apply_chat_template(prompt, enable_thinking)
         json_data: t.Dict[str, t.Any] = {
@@ -113,43 +133,64 @@ class LLaMaCPP:
             json_data['grammar'] = grammar
         if seed is not None:
             json_data['seed'] = seed
-        req = request('POST', 'http://127.0.0.1:8432/completion', json=json_data)
-        if req.status_code != 200:
-            raise Exception(req.text)
-        json_return = req.json()
-        return json_return['content']
+        self._add_reader()
+        try:
+            req = request('POST', 'http://127.0.0.1:8432/completion', json=json_data)
+            if req.status_code != 200:
+                raise Exception(req.text)
+            json_return = req.json()
+            return json_return['content']
+        finally:
+            self._remove_reader()
 
-    def process_is_alive(self) -> bool:
-        if self._process is None:
-            return False
-        return self._process.poll() is None
+    def process_is_alive(self) -> bool:  # type: ignore
+        self._add_reader()
+        try:
+            if self._process is None:
+                return False
+            return self._process.poll() is None
+        finally:
+            self._remove_reader()
 
-    @staticmethod
-    def is_loading():
-        req = request('GET', 'http://127.0.0.1:8432/health')
-        return req.status_code == 503
+    def is_loading(self) -> bool:  # type: ignore
+        self._add_reader()
+        try:
+            req = request('GET', 'http://127.0.0.1:8432/health')
+            return req.status_code == 503
+        finally:
+            self._remove_reader()
 
-    @staticmethod
-    def is_running():
-        req = request('GET', 'http://127.0.0.1:8432/health')
-        return req.status_code == 200
+    def is_running(self) -> bool:  # type: ignore
+        self._add_reader()
+        try:
+            req = request('GET', 'http://127.0.0.1:8432/health')
+            return req.status_code == 200
+        finally:
+            self._remove_reader()
 
-    @staticmethod
-    def has_error():
-        req = request('GET', 'http://127.0.0.1:8432/health')
-        return req.status_code not in [200, 503]
+    def has_error(self) -> bool:  # type: ignore
+        self._add_reader()
+        try:
+            req = request('GET', 'http://127.0.0.1:8432/health')
+            return req.status_code not in [200, 503]
+        except RequestException:
+            return True
+        finally:
+            self._remove_reader()
 
     def stop(self) -> None:
-        if self._process is None:
+        with self._write_lock:
+            if self._process is None:
+                return None
+            self._process.terminate()
             return None
-        self._process.terminate()
-        return None
 
     def kill(self):
-        if self._process is None:
+        with self._write_lock:
+            if self._process is None:
+                return None
+            self._process.kill()
             return None
-        self._process.kill()
-        return None
 
     def get_system_message(self) -> t.List[t.Dict[str, str]]:
         short_name = self.short_model_name(self._model_name)
@@ -169,7 +210,7 @@ class LLaMaCPP:
 
     @staticmethod
     def short_model_name(model_name: str) -> t.Optional[str]:
-        for model in LLMS:
+        for model in sorted(LLMS.keys(), key=lambda x: len(x) , reverse=True):
             if model_name.startswith(model):
                 return model
         return None
