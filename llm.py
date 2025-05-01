@@ -3,6 +3,14 @@ from json import load
 from os import listdir
 from os.path import getsize
 from subprocess import Popen, PIPE, run
+from requests import request
+from jinja2 import Template
+
+
+__all__ = [
+    'LLaMaCPP',
+    'LLMS',
+]
 
 
 with open('/opt/llms/index.json', 'r') as _f:
@@ -66,10 +74,70 @@ class LLaMaCPP:
         self._process = Popen(command, stdout=PIPE, stderr=PIPE, text=True)
         return None
 
-    def is_loading_or_running(self) -> bool:
+    def apply_chat_template(self, conversation: t.List[t.Dict[str, str]], enable_thinking: bool = False) -> str:
+        short_name = self.short_model_name(self._model_name)
+        chat_template: str = LLMS[short_name]['chat_template']
+        template = Template(chat_template)
+        options: t.Dict[str, t.Any] = {
+            'messages': conversation,
+            'tools': [],
+            'add_generation_prompt': True,
+            'enable_thinking': False,
+        }
+        if LLMS[short_name]['thinking']:
+            if LLMS[short_name]['optional_thinking']:
+                options['enable_thinking'] = enable_thinking
+            else:
+                options['enable_thinking'] = True
+        else:
+            options['enable_thinking'] = False
+        return template.render(**options)
+
+    def generate(self, prompt: t.Union[str, t.List[t.Dict[str, str]]], enable_thinking: bool = False, temperature: float = None, top_k: int = None, top_p: float = None, min_p: float = None, n_predict: int = None, grammar: str = None, seed: int = None) -> str:
+        if isinstance(prompt, list):
+            prompt = self.apply_chat_template(prompt, enable_thinking)
+        json_data: t.Dict[str, t.Any] = {
+            'prompt': prompt,
+        }
+        if temperature is not None:
+            json_data['temperature'] = temperature
+        if top_k is not None:
+            json_data['top_k'] = top_k
+        if top_p is not None:
+            json_data['top_p'] = top_p
+        if min_p is not None:
+            json_data['min_p'] = min_p
+        if n_predict is not None:
+            json_data['n_predict'] = n_predict
+        if grammar is not None:
+            json_data['grammar'] = grammar
+        if seed is not None:
+            json_data['seed'] = seed
+        req = request('POST', 'http://127.0.0.1:8432/completion', json=json_data)
+        if req.status_code != 200:
+            raise Exception(req.text)
+        json_return = req.json()
+        return json_return['content']
+
+    def process_is_alive(self) -> bool:
         if self._process is None:
             return False
         return self._process.poll() is None
+
+    @staticmethod
+    def is_loading():
+        req = request('GET', 'http://127.0.0.1:8432/health')
+        return req.status_code == 503
+
+    @staticmethod
+    def is_running():
+        req = request('GET', 'http://127.0.0.1:8432/health')
+        return req.status_code == 200
+
+    @staticmethod
+    def has_error():
+        req = request('GET', 'http://127.0.0.1:8432/health')
+        return req.status_code not in [200, 503]
 
     def stop(self) -> None:
         if self._process is None:
@@ -83,6 +151,12 @@ class LLaMaCPP:
         self._process.kill()
         return None
 
+    def get_system_message(self) -> t.List[t.Dict[str, str]]:
+        short_name = self.short_model_name(self._model_name)
+        system_message = LLMS[short_name]['system_message']
+        if system_message == '':
+            return []
+        return [{'role': 'system', 'content': system_message}]
 
     @staticmethod
     def list_available_models() -> t.List[str]:
