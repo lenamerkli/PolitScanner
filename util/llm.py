@@ -157,6 +157,8 @@ class LLaMaCPP:
         try:
             req = request('GET', 'http://127.0.0.1:8432/health')
             return req.status_code == 503
+        except RequestException:
+            return False
         finally:
             self._remove_reader()
 
@@ -165,6 +167,8 @@ class LLaMaCPP:
         try:
             req = request('GET', 'http://127.0.0.1:8432/health')
             return req.status_code == 200
+        except RequestException:
+            return False
         finally:
             self._remove_reader()
 
@@ -243,7 +247,7 @@ def calculate_offload_layers(model_name: str, short_model_name: str) -> int:
     llm_size = getsize(f"/opt/llms/{model_name}") / (1024 ** 2) * 1.1
     layers = LLMS[short_model_name]['layers']
     vram_per_layer = llm_size / layers
-    return int(free_vram / vram_per_layer)
+    return min(int(free_vram / vram_per_layer), layers)
 
 
 
