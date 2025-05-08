@@ -15,11 +15,12 @@ import typing as t
 
 def main() -> None:
     llm = LLaMaCPP()
-    llm.set_model('Qwen3-8B-Q5_K_M.gguf')
+    llm.set_model('Qwen3-30B-A3B-Q5_K_M.gguf')
     llm.load_model()
     try:
         while llm.is_loading() or not llm.is_running():
             sleep(1)
+        sleep(2)
         system_prompt = llm.get_system_message()
         with open(abspath('./prompt.md'), 'r') as f:
             prompt_template = f.read()
@@ -49,7 +50,10 @@ def main() -> None:
             sources = contents[3].split('\n\n')
             for i in range(len(sources)):
                 sources[i] = sources[i].strip()
-            prompt = prompt_template.replace('{{topic}}', contents[0]).replace('{{statements}}', '\n$\n'.join(statements))
+            statements_extended = statements.copy()
+            for i, sentence in enumerate(contents[2].split('. ')):
+                statements_extended.insert(i, sentence + '.')
+            prompt = prompt_template.replace('{{topic}}', contents[0]).replace('{{statements}}', '\n$\n'.join(statements_extended))
             conversation = system_prompt.copy()
             conversation.append({'role': 'user', 'content': prompt})
             response = llm.generate(conversation, grammar=grammar)
