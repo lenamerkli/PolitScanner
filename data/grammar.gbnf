@@ -108,4 +108,4 @@
 
 # Above this is a general explanation of GBNF.
 
-root ::= "<think>" [^\t]* "</think>\n```text\n" [^\n] ("\n$\n" [^\n]*)* "\n```"
+root ::= "<think>" [^\t]* "</think>\n" "```text\n" [^\n]* ("\n$\n" [^\n]*)* "\n```"

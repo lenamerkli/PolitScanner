@@ -45,7 +45,7 @@ class LLaMaCPP:
         with self._write_lock:
             self._model_name = model_name
 
-    def load_model(self, seed: int = None, threads: int = None, kv_cache_type: t.Optional[t.Literal['f16', 'bf16', 'q8_0', 'q5_0', 'q4_0']] = None, context: int = None, temperature: float = None, top_p: float = None, top_k: int = None, min_p: float = None) -> None:
+    def load_model(self, print_log: bool = False, seed: int = None, threads: int = None, kv_cache_type: t.Optional[t.Literal['f16', 'bf16', 'q8_0', 'q5_0', 'q4_0']] = None, context: int = None, temperature: float = None, top_p: float = None, top_k: int = None, min_p: float = None) -> None:
         if self.process_is_alive():
             raise Exception("A model is already loaded. Use stop() before loading a new model.")
         if self._model_name is None:
@@ -91,7 +91,13 @@ class LLaMaCPP:
                 '--port', '8432',
                 '--alias', short_name,
             ]
-            self._process = Popen(command, stdout=PIPE, stderr=PIPE, text=True)
+            if print_log:
+                stdout = None
+                stderr = None
+            else:
+                stdout = PIPE
+                stderr = PIPE
+            self._process = Popen(command, stdout=stdout, stderr=stderr, text=True)
         return None
 
     def apply_chat_template(self, conversation: t.List[t.Dict[str, str]], enable_thinking: bool = False) -> str:
