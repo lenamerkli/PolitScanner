@@ -5,11 +5,20 @@ An entry for the swiss AI challenge 2025 to detect common false narratives and f
 
 ### System requirements
 
-- `Nobara-41-Official-Nvidia`, a fork of Fedora Linux.
+- `Nobara-42-Official-Nvidia`, a fork of Fedora Linux.
 - an nvidia GPU with at least 8GB VRAM and a CUDA compute capability of at least 8.9.
 - toolbox enabled
 
 A list of supported GPUs can be found in [Supported GPUs](#supported-gpus).
+
+### Increase memlock
+
+Add (or update) the following lines to `/etc/security/limits.conf`:
+```text
+* soft memlock 50331648
+* hard memlock 50331648
+```
+
 
 ### System updates
 
