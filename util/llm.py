@@ -79,6 +79,8 @@ class LLaMaCPP:
                 '--no-escape',
                 '--cache-type-k', kv_cache_type,
                 '--cache-type-v', kv_cache_type,
+                '--batch-size', '32',
+                '--ubatch-size', '16',
                 '--mlock',
                 '--n-gpu-layers', str(offload_layers),
                 '--model', f'/opt/llms/{self._model_name}',
@@ -249,12 +251,12 @@ def calculate_offload_layers(model_name: str, short_model_name: str) -> int:
     :param short_model_name: The short name of the model
     :return: The number of layers to offload
     """
-    free_vram = check_free_vram() - 1000
-    llm_size = getsize(f"/opt/llms/{model_name}") / (1024 ** 2) * 1.1
+    free_vram = check_free_vram()
+    llm_size = getsize(f"/opt/llms/{model_name}") / (1024 ** 2)
+    llm_size = llm_size * 1.05
     layers = LLMS[short_model_name]['layers']
     vram_per_layer = llm_size / layers
     return min(int(free_vram / vram_per_layer), layers)
-
 
 
 def check_free_vram() -> int:

@@ -16,7 +16,7 @@ import typing as t
 def main() -> None:
     llm = LLaMaCPP()
     llm.set_model('Qwen3-30B-A3B-Q5_K_M.gguf')
-    llm.load_model(print_log=False)
+    llm.load_model(print_log=False, seed=42, threads=24, kv_cache_type='q8_0', context=2048)
     try:
         while llm.is_loading() or not llm.is_running():
             sleep(1)
@@ -24,8 +24,8 @@ def main() -> None:
         system_prompt = llm.get_system_message()
         with open(abspath('./prompt.md'), 'r') as f:
             prompt_template = f.read()
-        with open(abspath('./grammar.gbnf'), 'r') as f:
-            grammar = f.read()
+        # with open(abspath('./grammar.gbnf'), 'r') as f:
+        #     grammar = f.read()
         hash_db = abspath('./parsed/hashes.json')
         if not exists(hash_db):
             with open(hash_db, 'w') as f:
@@ -51,12 +51,10 @@ def main() -> None:
             for i in range(len(sources)):
                 sources[i] = sources[i].strip()
             statements_extended = statements.copy()
-            for i, sentence in enumerate(contents[2].split('. ')):
-                statements_extended.insert(i, sentence + '.')
             prompt = prompt_template.replace('{{topic}}', contents[0]).replace('{{statements}}', '\n$\n'.join(statements_extended))
             conversation = system_prompt.copy()
             conversation.append({'role': 'user', 'content': prompt})
-            response = llm.generate(conversation, grammar=grammar, enable_thinking=False)
+            response = llm.generate(conversation, enable_thinking=False)  # grammar=grammar
             response_statements = response.split('```')[1].split('\n$\n')
             for i in range(len(response_statements)):
                 response_statements[i] = response_statements[i].replace('text\n', '').strip()
