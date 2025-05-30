@@ -9,7 +9,7 @@ from shutil import copyfile
 
 
 MODELS = {
-    'DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf': 'https://huggingface.co/bartowski/deepseek-ai_DeepSeek-R1-0528-Qwen3-8B-GGUF/resolve/main/deepseek-ai_DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf',
+    'DeepSeek-R1-0528-Qwen3-8B-Q5_K_L.gguf': 'https://huggingface.co/bartowski/deepseek-ai_DeepSeek-R1-0528-Qwen3-8B-GGUF/resolve/main/deepseek-ai_DeepSeek-R1-0528-Qwen3-8B-Q5_K_L.gguf',
     'Ministral-8B-Instruct-2410-Q4_K_S.gguf': 'https://huggingface.co/bartowski/Ministral-8B-Instruct-2410-GGUF/resolve/main/Ministral-8B-Instruct-2410-Q4_K_S.gguf',
     'Qwen3-30B-A3B-Q5_K_M.gguf': 'https://huggingface.co/bartowski/Qwen_Qwen3-30B-A3B-GGUF/resolve/main/Qwen_Qwen3-30B-A3B-Q5_K_M.gguf',
     'Qwen3-8B-Q5_K_M.gguf': 'https://huggingface.co/bartowski/Qwen_Qwen3-8B-GGUF/resolve/main/Qwen_Qwen3-8B-Q5_K_M.gguf',
