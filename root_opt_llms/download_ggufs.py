@@ -1,7 +1,6 @@
 import sys
 sys.path.append('/home/lena/Documents/python/PolitScanner/util')
 
-
 from pathlib import Path
 from os.path import join
 from requests import get
@@ -16,7 +15,7 @@ MODELS = {
 }
 
 
-def download_large_file(url: str, directory: str, filename: str = None):
+def download_file(url: str, directory: str, filename: str = None):
     Path(directory).mkdir(parents=True, exist_ok=True)
     if filename is None:
         filename = url.split('/')[-1].split('?')[0]
@@ -42,7 +41,7 @@ def main() -> None:
         model = list(MODELS.keys())[i - 1]
         url = MODELS[model]
         print(f"Downloading {model}")
-        download_large_file(url, '/opt/llms/', model)
+        download_file(url, '/opt/llms/', model)
         print(f"Downloaded {model}")
     print('Done')
 
