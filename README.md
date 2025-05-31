@@ -6,8 +6,9 @@ An entry for the swiss AI challenge 2025 to detect common false narratives and f
 ### System requirements
 
 - `Nobara-42-Official-Nvidia`, a fork of Fedora Linux.
-- an nvidia GPU with at least 8GB VRAM and a CUDA compute capability of at least 8.9.
+- an nvidia GPU with at least 8GB VRAM, a CUDA compute capability of at least 8.9 and support for CUDA 12.8.
 - toolbox enabled
+- `amd64` or `x86_64` architecture CPU
 
 A list of supported GPUs can be found in [Supported GPUs](#supported-gpus).
 
@@ -48,6 +49,8 @@ Create the virtual environment using the provided bash script:
 
 ### CUDA
 
+Note: Make sure to use version 12.8.*, as it is required by this project.
+
 Install the `cuda-devel` package through the `Nobara Package Manager` app.
 
 #### ToolBox
@@ -57,6 +60,8 @@ Create the toolbox environment with the following command on the host:
 ```shell
 toolbox create --image registry.fedoraproject.org/fedora-toolbox:41 --container fedora-toolbox-41-cuda
 ```
+
+Although Fedora 42 and Nobara 42 are available, this guide uses the `Fedora 41` toolbox environment, as it has not been tested with the newer versions.
 
 Enter the toolbox with the following command on host. All following commands in this section are to be executed in the toolbox.
 
@@ -74,6 +79,12 @@ Install development tools:
 
 ```shell
 sudo dnf install @c-development @development-tools cmake
+```
+
+Install python:
+
+```shell
+sudo dnf install python3.12
 ```
 
 Add the NVIDIA CUDA repository to DNF:
@@ -198,17 +209,94 @@ To enable shared memory support for llama.cpp, add the following line to the end
 export GGML_CUDA_ENABLE_UNIFIED_MEMORY=1
 ```
 
+### Unsloth
+
+Enter the toolbox:
+
+```shell
+toolbox enter fedora-toolbox-41-cuda
+```
+
+Go to the `PolitScanner` directory using `cd`.
+
+Set the required environment variables:
+
+```shell
+export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+```
+
+Install the python development tools:
+
+```shell
+sudo dnf install python3.12-devel
+./.venv/bin/pip3 install ninja
+```
+
+Install unsloth:
+
+```shell
+./.venv/bin/pip3 install "unsloth[cu128-ampere-torch270] @ git+https://github.com/unslothai/unsloth.git" --force-reinstall --no-cache-dir --upgrade --use-pep517
+```
+
 ## Supported GPUs
 
 The developers of PolitScanner provide support for the following GPUs, as of April 2025:
 
-- RTX 4060 to RTX 4090
-- RTX 4060 Mobile to RTX 4090 Mobile
-- RTX 5060 Ti to RTX 5090
-- RTX 5070 Ti Mobile to RTX 5090 Mobile
-- RTX Pro Blackwell Series
-- B200 and GB200
-- H100 and H200
-- L4, L40 and L40S
+### Desktop GPUs
+- RTX 4060, RTX 4060 Ti
+- RTX 4070, RTX 4070 Super, RTX 4070 Ti, RTX 4070 Ti Super
+- RTX 4080, RTX 4080 Super
+- RTX 4090, RTX 4090 D
+- RTX 5060, RTX 5060 Ti
+- RTX 5070, RTX 5070 Ti
+- RTX 5080, RTX 5080 Ti
+- RTX 5090, RTX 5090 D
 
-Other NVIDIA GPUs may work as well. It is intentional that the RTX 4050 Mobile is missing on this list.
+### Mobile GPUs
+- RTX 4060 Mobile
+- RTX 4070 Mobile
+- RTX 4080 Mobile
+- RTX 4090 Mobile
+- RTX 5060 Mobile
+- RTX 5070 Mobile
+- RTX 5080 Mobile
+- RTX 5090 Mobile
+
+### Professional GPUs
+- RTX A1000
+- RTX A2000 12GB
+- RTX A4000
+- RTX A4000H
+- RTX A4500
+- RTX A5000
+- RTX A5500
+- RTX A6000
+- RTX 2000 Ada
+- RTX 4000 Ada
+- RTX 4500 Ada
+- RTX 5000 Ada
+- RTX 5880 Ada
+- RTX 6000 Ada
+- RTX PRO 4000 Blackwell
+- RTX PRO 4500 Blackwell
+- RTX PRO 5000 Blackwell
+- RTX PRO 6000 Blackwell
+- RTX PRO 6000 Blackwell Max-Q
+
+### Data Center GPUs
+- A2
+- A10
+- A16
+- A30
+- A100
+- A800
+- L4
+- L20
+- L40
+- L40S
+- H100
+- H200
+- H800
+- B100
+
+Other NVIDIA GPUs may work as well, but the developers of PolitScanner do not provide support or bug fixes for them. It is intentional that the RTX 4050 Mobile is missing on this list.
