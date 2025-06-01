@@ -6,6 +6,8 @@ An entry for the swiss AI challenge 2025 to detect common false narratives and f
   - [System Requirements](#system-requirements)
   - [Increase memlock](#increase-memlock)
   - [System Updates](#system-updates)
+  - [GCC](#gcc)
+  - [Git](#git)
   - [Python](#python)
     - [Virtual environment](#virtual-environment)
   - [CUDA](#cuda)
@@ -43,6 +45,29 @@ Add (or update) the following lines to `/etc/security/limits.conf`:
 ### System updates
 
 Update the entire system through the `Update System` Nobara app.
+
+### GCC
+
+Install the gcc and gcc-c++ compilers:
+
+```shell
+sudo dnf install gcc gcc-c++
+```
+
+### Git
+
+Install git:
+
+```shell
+sudo dnf install git
+```
+
+Clone the PolitScanner repository:
+
+```shell
+git clone https://github.com/lenamerkli/PolitScanner.git
+cd PolitScanner
+```
 
 ### Python
 
