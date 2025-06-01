@@ -263,16 +263,9 @@ The developers of PolitScanner provide support for the following GPUs, as of Apr
 - RTX 5090 Mobile
 
 ### Professional GPUs
-- RTX A1000
-- RTX A2000 12GB
-- RTX A4000
-- RTX A4000H
-- RTX A4500
-- RTX A5000
-- RTX A5500
-- RTX A6000
 - RTX 2000 Ada
 - RTX 4000 Ada
+- RTX 4000 SFF Ada
 - RTX 4500 Ada
 - RTX 5000 Ada
 - RTX 5880 Ada
@@ -284,19 +277,13 @@ The developers of PolitScanner provide support for the following GPUs, as of Apr
 - RTX PRO 6000 Blackwell Max-Q
 
 ### Data Center GPUs
-- A2
-- A10
-- A16
-- A30
-- A100
-- A800
 - L4
-- L20
 - L40
 - L40S
 - H100
 - H200
-- H800
-- B100
+- GH200
+- B200
+- GB200
 
 Other NVIDIA GPUs may work as well, but the developers of PolitScanner do not provide support or bug fixes for them. It is intentional that the RTX 4050 Mobile is missing on this list.
