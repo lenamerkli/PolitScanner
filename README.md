@@ -1,6 +1,25 @@
 # PolitScanner
 An entry for the swiss AI challenge 2025 to detect common false narratives and fake news in the speeches of Swiss politicians.
 
+## Table of Contents
+- [Installation](#installation)
+  - [System Requirements](#system-requirements)
+  - [Increase memlock](#increase-memlock)
+  - [System Updates](#system-updates)
+  - [Python](#python)
+    - [Virtual environment](#virtual-environment)
+  - [CUDA](#cuda)
+    - [ToolBox](#toolbox)
+  - [llama.cpp](#llamacpp)
+    - [Shared memory](#enable-shared-memory-optional)
+  - [Unsloth](#unsloth)
+- [Supported GPUs](#supported-gpus)
+  - [Desktop GPUs](#desktop-gpus)
+  - [Mobile GPUs](#mobile-gpus)
+  - [Professional GPUs](#professional-gpus)
+  - [Data Center GPUs](#data-center-gpus)
+- [License](#license)
+
 ## Installation
 
 ### System requirements
@@ -223,19 +242,43 @@ Set the required environment variables:
 
 ```shell
 export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+export CUDA_HOME=/usr/local/cuda
 ```
 
 Install the python development tools:
 
 ```shell
-sudo dnf install python3.12-devel
-./.venv/bin/pip3 install ninja
+sudo dnf install python3.12-devel ninja-build
+```
+
+Create the required symlink:
+
+```shell
+sudo ln -s /usr/local/cuda/bin/nvcc /usr/bin/nvcc
+```
+
+Activate the virtual environment:
+
+```shell
+source ./.venv/bin/activate
+```
+
+Install flash attention:
+
+```shell
+pip install flash-attn==2.7.4.post1 --no-build-isolation --no-cache-dir --upgrade --use-pep517
 ```
 
 Install unsloth:
 
 ```shell
-./.venv/bin/pip3 install "unsloth[cu128-ampere-torch270] @ git+https://github.com/unslothai/unsloth.git" --force-reinstall --no-cache-dir --upgrade --use-pep517
+pip install "unsloth[cu128-ampere-torch270] @ git+https://github.com/unslothai/unsloth.git" --force-reinstall --no-cache-dir --upgrade --use-pep517
+```
+
+Update protobuf:
+
+```shell
+pip install protobuf==5.29.4 --upgrade
 ```
 
 ## Supported GPUs
@@ -243,14 +286,24 @@ Install unsloth:
 The developers of PolitScanner provide support for the following GPUs, as of April 2025:
 
 ### Desktop GPUs
-- RTX 4060, RTX 4060 Ti
-- RTX 4070, RTX 4070 Super, RTX 4070 Ti, RTX 4070 Ti Super
-- RTX 4080, RTX 4080 Super
-- RTX 4090, RTX 4090 D
-- RTX 5060, RTX 5060 Ti
-- RTX 5070, RTX 5070 Ti
-- RTX 5080, RTX 5080 Ti
-- RTX 5090, RTX 5090 D
+- RTX 4060
+- RTX 4060 Ti
+- RTX 4070
+- RTX 4070 Super
+- RTX 4070 Ti
+- RTX 4070 Ti Super
+- RTX 4080
+- RTX 4080 Super
+- RTX 4090
+- RTX 4090 D
+- RTX 5060
+- RTX 5060 Ti
+- RTX 5070
+- RTX 5070 Ti
+- RTX 5080
+- RTX 5080 Ti
+- RTX 5090
+- RTX 5090 D
 
 ### Mobile GPUs
 - RTX 4060 Mobile
@@ -287,3 +340,7 @@ The developers of PolitScanner provide support for the following GPUs, as of Apr
 - GB200
 
 Other NVIDIA GPUs may work as well, but the developers of PolitScanner do not provide support or bug fixes for them. It is intentional that the RTX 4050 Mobile is missing on this list.
+
+## License
+
+[MIT License](LICENSE)
