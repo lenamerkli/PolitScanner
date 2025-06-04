@@ -77,6 +77,12 @@ Install Python version 3.12.10 with the following command:
 sudo dnf install python3.12-0:3.12.10-1.fc41.x86_64
 ```
 
+Install the Python development packages:
+
+```shell
+sudo dnf install python3.12-devel-0:3.12.10-1.fc41
+```
+
 The Python virtual environment package is also required:
 
 ```shell

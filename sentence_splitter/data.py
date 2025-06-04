@@ -1,3 +1,7 @@
+from torch.utils.data import Dataset
+import typing as t
+
+
 TRAINING_DATA = [
     {
         'text': b'Der Bundesrat wird beauftragt, den linksrheinischen NEAT-Zubringer Antwerpen\xe2\x80\x93Basel als zweite n\xc3\xb6rdliche Zulaufstrecke zeitnah auszubauen. Insbesondere soll die Schweiz die daf\xc3\xbcr erforderliche Profilanpassung der Vogesen-Tunnel vollst\xc3\xa4ndig finanzieren und hierf\xc3\xbcr vorrangig die freiwerdenden Mittel der Rollenden Landstrasse (RoLa) aus den Jahren 2026\xe2\x80\x932028 einsetzen.\nDie NEAT hat die Kapazit\xc3\xa4t des alpenquerenden G\xc3\xbctertransitverkehrs durch die Schweiz deutlich erh\xc3\xb6ht. Allerdings ist der wichtigste n\xc3\xb6rdliche Zulauf, die rechtsrheinische Rheintalbahn in Deutschland, bereits heute \xc3\xbcberlastet und \xc3\xa4usserst st\xc3\xb6ranf\xc3\xa4llig. Verz\xc3\xb6gerungen beim dortigen Ausbau (voraussichtliche Fertigstellung erst 2042) versch\xc3\xa4rfen dieses Engpassproblem. Um die Resilienz des Systems zu st\xc3\xa4rken, braucht es dringend einen zweiten Nordzulauf zur NEAT.',
@@ -28,6 +32,92 @@ TRAINING_DATA = [
         'data': [(156, 1), (452, 5), (529, 5), (745, 1), (866, 1), (1036, 5), (1313, 1), (1442, 1), (1584, 1), (1697, 1), (1790, 1), (2102, 1), (2221, 1), (2387, 0)],
     },
 ]
+
+FILLERS = [' ', '\n', '\n\n', '  ', '\t']
+
+
+class SentenceSplitterDataset(Dataset):
+
+    def __init__(self, train=True, min_length=512, max_length=2048):
+        super(SentenceSplitterDataset, self).__init__()
+        # train is ignored for now
+        # check if arguments are valid
+        if min_length > max_length:
+            raise ValueError("min_length must be less than or equal than max_length")
+        self._train = train
+        self._min_length = min_length
+        self._max_length = max_length
+        self._string = b''
+        self._void: t.List[int] = []
+        self._ends: t.List[int] = []
+        for set_index, data_set in enumerate(TRAINING_DATA):
+            string_length = len(self._string)
+            if len(self._string) > 0:
+                filler = FILLERS[(((set_index + 1) ** 2) - 1) % len(FILLERS)].encode('utf-8')
+                self._string += filler
+                for i in range(len(filler)):
+                    self._void.append(string_length + i)
+            string_length = len(self._string)
+            self._string += data_set['text']
+            for point in data_set['data']:
+                if point[0] > 0:
+                    self._ends.append(string_length + point[0])
+                if point[1] > 0:
+                    for i in range(point[1]):
+                        self._void.append(string_length + point[0] + i)
+
+    def debug(self):
+        print(f"Min length: {self._min_length}, Max length: {self._max_length}, String length: {len(self._string)}, Void length: {len(self._void)}, End length: {len(self._ends)}, Void: {self._void}, Ends: {self._ends}")
+
+    def _cumulative_count(self, l):  # written by `DeepSeek-R1-0528`
+        n = len(self._string)
+        l_high_bound = min(n, self._max_length)
+        if self._min_length > l_high_bound:
+            return 0
+        if l < self._min_length:
+            return 0
+        l_val = min(l, l_high_bound)
+        terms = l_val - self._min_length + 1
+        return terms * (2 * n - self._min_length - l_val + 2) // 2
+
+    def __len__(self):
+        n = len(self._string)
+        l_bound = min(n, self._max_length)
+        return self._cumulative_count(l_bound)
+
+    def __getitem__(self, index):  # partially written by `DeepSeek-R1-0528`
+        total = len(self)
+        if index < 0 or index >= total:
+            raise IndexError("index out of range")
+
+        n = len(self._string)
+        low = self._min_length
+        high = min(n, self._max_length)
+        l_found = high + 1
+
+        while low <= high:
+            mid = (low + high) // 2
+            f_mid = self._cumulative_count(mid)
+            if f_mid <= index:
+                low = mid + 1
+            else:
+                l_found = mid
+                high = mid - 1
+
+        f_prev = self._cumulative_count(l_found - 1)
+        start_index = index - f_prev
+        data = []
+        for i in range(start_index, start_index + l_found):
+            if i in self._ends:
+                end = i - start_index
+                voids = 0
+                for j in range(i, start_index + l_found):
+                    if j in self._void and end + voids < start_index + l_found:
+                        voids += 1
+                    else:
+                        break
+                data.append((end, voids))
+        return {'text': self._string[start_index:start_index + l_found], 'data': data}
 
 
 def main() -> None:
