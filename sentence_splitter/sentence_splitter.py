@@ -1,32 +1,36 @@
-from torch.nn import Module, Linear, GELU
+from torch.nn import Module, Linear, GELU, ModuleList
 from torch import Tensor, zeros, abs
-from bitsandbytes.nn import Linear8bitLt
-import typing as t
 
 
 INPUT_SIZE = 2048
 HIDDEN_SIZES = [1536, 1024, 512]
-OUTPUT_SIZE = 2 * 128
+# HIDDEN_SIZES = [4096, 2048, 1024, 512]
+OUTPUT_SIZE = 256
 PARAMETERS = INPUT_SIZE * HIDDEN_SIZES[0] + sum((HIDDEN_SIZES[i - 1] * HIDDEN_SIZES[i] for i in range(1, len(HIDDEN_SIZES) - 1))) + HIDDEN_SIZES[-1] * OUTPUT_SIZE
 
 
 class SentenceSplitter(Module):
     def __init__(self):
         super(SentenceSplitter, self).__init__()
-        self.layers: t.List[t.Union[Linear, Linear8bitLt]] = []
+        self.layers = ModuleList()
         self.gelu = GELU()
         self.layers.append(Linear(INPUT_SIZE, HIDDEN_SIZES[0]))
-        for i in range(1, len(HIDDEN_SIZES) - 1):
-            self.layers.append(Linear8bitLt(HIDDEN_SIZES[i - 1], HIDDEN_SIZES[i]))
+        for i in range(1, len(HIDDEN_SIZES)):
+            self.layers.append(Linear(HIDDEN_SIZES[i - 1], HIDDEN_SIZES[i]))
         self.layers.append(Linear(HIDDEN_SIZES[-1], OUTPUT_SIZE))
 
     def forward(self, x):
         if len(x.shape) == 1:
             x = x.unsqueeze(0)
-        for i in range(len(self.layers) - 1):
-            x = self.layers[i](x)
-            x = self.gelu(x)
-        x = self.layers[-1](x)
+        for i in range(len(self.layers)):
+            try:
+                x = self.layers[i](x)
+                if i != len(self.layers) - 1:
+                    x = self.gelu(x)
+            except Exception as e:
+                e.add_note(f"Error in layer {i}")
+                raise e
+        x = x.view(x.size(0), -1)
         return x
 
 
@@ -47,3 +51,8 @@ class SentenceSplitterLoss(Module):
             if delta[0, i] != 0:
                 losses += self._alpha * delta[0, i] + self._beta
         return losses
+
+
+if __name__ == "__main__":
+    model = SentenceSplitter()
+    print(model.layers)

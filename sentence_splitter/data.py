@@ -1,4 +1,6 @@
 from torch.utils.data import Dataset
+from torch import tensor
+from sentence_splitter import INPUT_SIZE, OUTPUT_SIZE
 import typing as t
 
 
@@ -38,13 +40,14 @@ FILLERS = [' ', '\n', '\n\n', '  ', '\t']
 
 class SentenceSplitterDataset(Dataset):
 
-    def __init__(self, train=True, min_length=512, max_length=2048):
+    def __init__(self, train=True, transform=None, min_length=512, max_length=2048):
         super(SentenceSplitterDataset, self).__init__()
         # train is ignored for now
         # check if arguments are valid
         if min_length > max_length:
             raise ValueError("min_length must be less than or equal than max_length")
         self._train = train
+        self._transform = transform
         self._min_length = min_length
         self._max_length = max_length
         self._string = b''
@@ -116,8 +119,22 @@ class SentenceSplitterDataset(Dataset):
                         voids += 1
                     else:
                         break
-                data.append((end, voids))
-        return {'text': self._string[start_index:start_index + l_found], 'data': data}
+                data.append([end, voids])
+        text = self._string[start_index:start_index + l_found]
+        text_length = len(text)
+        text += b'\x00' * (INPUT_SIZE - text_length)
+        if data[-1][0] + data[-1][1] >= text_length:
+            data[-1][1] = INPUT_SIZE - data[-1][0]
+        output = []
+        for point in data:
+            output.append(point[0])
+            output.append(point[1])
+        while len(output) < OUTPUT_SIZE:
+            output.append(0)
+        f = tensor([float(number) for number in text], device='cuda'), tensor([float(number) for number in output], device='cuda')
+        if self._transform:
+            f = self._transform(f[0]), self._transform(f[1])
+        return f
 
 
 def main() -> None:
