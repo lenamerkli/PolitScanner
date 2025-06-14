@@ -2,10 +2,10 @@ from torch.nn import Module, Linear, GELU, ModuleList
 from torch import Tensor, zeros, abs
 
 
-INPUT_SIZE = 2048
+INPUT_SIZE = 1024
 HIDDEN_SIZES = [1536, 1024, 512]
 # HIDDEN_SIZES = [4096, 2048, 1024, 512]
-OUTPUT_SIZE = 256
+OUTPUT_SIZE = 64
 PARAMETERS = INPUT_SIZE * HIDDEN_SIZES[0] + sum((HIDDEN_SIZES[i - 1] * HIDDEN_SIZES[i] for i in range(1, len(HIDDEN_SIZES) - 1))) + HIDDEN_SIZES[-1] * OUTPUT_SIZE
 
 
@@ -48,7 +48,7 @@ class SentenceSplitterLoss(Module):
             target = target.unsqueeze(0)
         delta = abs(output - target)
         for i in range(delta.shape[1]):
-            if delta[0, i] != 0:
+            if delta[0, i] >= 0.5:
                 losses += self._alpha * delta[0, i] + self._beta
         return losses
 

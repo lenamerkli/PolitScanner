@@ -1,25 +1,25 @@
 import sys
 sys.path.append('/home/lena/Documents/python/PolitScanner/util')
 
-from sentence_splitter import SentenceSplitter, SentenceSplitterLoss
+from sentence_splitter import SentenceSplitter, INPUT_SIZE
 from data import SentenceSplitterDataset
 from util.time import current_time
 from torch.optim import Adam
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torch.nn.init import xavier_uniform_
 from torch.nn.utils import clip_grad_norm_
-from torch.nn import Linear
+from torch.nn import Linear, HuberLoss
 from torch import save, isnan
 from pathlib import Path
 from json import dump as json_dump
 
 
-ALPHA = 1.0
-BETA = 1.0
-NUM_EPOCHS = 8
-BATCH_SIZE = 32
-LEARNING_RATE = 1e-6
+ALPHA = 1.1
+BETA = 1.1
+NUM_EPOCHS = 128
+BATCH_SIZE = 4
+LEARNING_RATE = 1e-3
 MIN_LENGTH = 512
 GRADIENT_CLIP = 0.5
 
@@ -40,16 +40,17 @@ def main() -> None:
             xavier_uniform_(layer.weight)
             if layer.bias is not None:
                 layer.bias.data.zero_()
-    criterion = SentenceSplitterLoss(alpha=ALPHA, beta=BETA)
+    criterion = HuberLoss(delta=2.0)
     optimizer = Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=0.0001)
-    scheduler = StepLR(optimizer, step_size=1, gamma=0.1)
-    train_loader = DataLoader(SentenceSplitterDataset(min_length=MIN_LENGTH), batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, min_lr=1e-6)
+    train_loader = DataLoader(SentenceSplitterDataset(min_length=MIN_LENGTH, max_length=INPUT_SIZE), batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
     n_total_steps = len(train_loader)
     i = 0
     loss_history = []
     keyboard_interrupt = False
     train = True
     epoch = 0
+    mean_loss = 0
     while train:
         try:
             if keyboard_interrupt:
@@ -66,18 +67,20 @@ def main() -> None:
                 else:
                     mean_loss = loss
                 mean_loss.backward()
-                clip_grad_norm_(model.parameters(), max_norm=1.0)
+                clip_grad_norm_(model.parameters(), max_norm=GRADIENT_CLIP)
                 optimizer.step()
                 loss_history.append(mean_loss.item())
-                if i % 10 == 0:
+                if i % 100 == 0:
                     for name, param in model.named_parameters():
                         if param.grad is not None and isnan(param.grad).any():
                             print(f"NaN gradient in {name}")
                         if isnan(param).any():
                             print(f"NaN parameter in {name}")
-                    print(f"Epoch [{epoch}/{NUM_EPOCHS}], Step [{i + 1}/{n_total_steps}], Loss: {loss_history[-1]:.6f}")
+                    print(f"Epoch [{epoch}/{NUM_EPOCHS}], Step [{i + 1}/{n_total_steps}], Loss: {loss_history[-1]:.6f}, Avg Loss: {sum(loss_history) / len(loss_history):.6f}")
+                if i >= 4096:
+                    break
             epoch += 1
-            scheduler.step()
+            scheduler.step(mean_loss)
         except KeyboardInterrupt:
             if not keyboard_interrupt:
                 print('Keyboard interrupt detected')
