@@ -1,0 +1,50 @@
+% Preamble
+\documentclass[11pt]{article}
+
+% Packages
+\usepackage{amsmath}
+
+% Title
+\title{PolitScanner Project Plan}
+\author{Lena Merkli}
+
+% Document
+\begin{document}
+
+    \maketitle
+    \tableofcontents
+
+    \bigskip\bigskip
+
+    \section{Overview}\label{sec:overview}
+    The AI system will analyze speeches by Swiss politicians to detect potential false narratives and fake news.
+    It will not provide information about the accuracy in the speeches, rather it will provide factual information about the topics that were found in the speech.
+    It has two inputs for this task: The written speech it is going to analyze and a list of false narratives and fake news.
+    The output is a list of the false narratives and fake news that were found in the speech.
+    To make it more specific, the speech will be split into parts with some overlap to not lose context, and these parts will be analyzed separately.
+    Additionally, only a selection of the false narratives and fake news will be used as input, as determined by a text embedding model.
+
+    \section{Database}\label{sec:database}
+    The database will be kept intentionally small to ensure manageability while still demonstrating the concept's viability."
+    One data point will consist of the following information:
+    \begin{itemize}
+        \item Topic summary
+        \item Statements including fake news about the topic, both true and false
+        \item The truth, based on scientific consensus
+        \item A list of sources for the provided truth
+    \end{itemize}
+
+    \section{Vector Search}\label{sec:vector_search}
+    The vector search will be based on embeddings of the database mentioned above.
+    A standard run-of-the-mill vector search engine will be used for this task to do the first narrowing of the topics.
+
+    \section{Part Splitting}\label{sec:part_splitting}
+    The speech will be split into parts with some overlap to not lose context.
+    For this, a simple transformer model will be trained and used.
+    Text for the training data will be gathered from the official Swiss Parliament website.
+
+    \section{Model}\label{sec:model}
+    The model will be a fine-tuned version of a small and recent open-weight large language model.
+    Unsloth on a RTX 4070 will be used for this task.
+
+\end{document}
