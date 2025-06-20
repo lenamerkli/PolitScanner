@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset
 from torch import tensor
-from sentence_splitter import INPUT_SIZE, OUTPUT_SIZE
+from sentence_splitter import INPUT_SIZE
 import typing as t
 
 
@@ -40,7 +40,7 @@ FILLERS = [' ', '\n', '\n\n', '  ', '\t']
 
 class SentenceSplitterDataset(Dataset):
 
-    def __init__(self, train=True, transform=None, min_length=512, max_length=2048):
+    def __init__(self, train=True, transform=None, min_length=512, max_length=2048, output_size=256, disable_pytorch=False):
         super(SentenceSplitterDataset, self).__init__()
         # train is ignored for now
         # check if arguments are valid
@@ -50,6 +50,8 @@ class SentenceSplitterDataset(Dataset):
         self._transform = transform
         self._min_length = min_length
         self._max_length = max_length
+        self._output_size = output_size
+        self._disable_pytorch = disable_pytorch
         self._string = b''
         self._void: t.List[int] = []
         self._ends: t.List[int] = []
@@ -122,14 +124,17 @@ class SentenceSplitterDataset(Dataset):
                 data.append([end, voids])
         text = self._string[start_index:start_index + l_found]
         text_length = len(text)
-        text += b'\x00' * (INPUT_SIZE - text_length)
+        if not self._disable_pytorch:
+            text += b'\x00' * (INPUT_SIZE - text_length)
         if data[-1][0] + data[-1][1] >= text_length:
             data[-1][1] = INPUT_SIZE - data[-1][0]
         output = []
         for point in data:
             output.append(point[0])
             output.append(point[1])
-        while len(output) < OUTPUT_SIZE:
+        if self._disable_pytorch:
+            return text, output
+        while len(output) < self._output_size:
             output.append(0)
         f = tensor([float(number) for number in text], device='cuda'), tensor([float(number) for number in output], device='cuda')
         if self._transform:

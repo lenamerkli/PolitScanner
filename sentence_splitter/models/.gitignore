@@ -2,3 +2,4 @@
 *.pth
 *.bin
 *.json
+*.gguf
