@@ -26,6 +26,8 @@ with open('prompt.md', 'r', encoding='utf-8') as _f:
     PROMPT = _f.read()
 TEMPLATE = Template(CHAT_TEMPLATES['qwen3'][0])
 
+FORMATTING_ITERS = 0
+
 
 def format_dataset() -> None:
     dataset = SentenceSplitterDataset(train=True, transform=None, min_length=512, max_length=INPUT_SIZE, output_size=0, disable_pytorch=True)
@@ -60,7 +62,13 @@ def format_dataset() -> None:
 
 
 def formatting_func(x, tokenizer):
-    return [TEMPLATE.render(messages=x['messages'], add_generation_prompt=True, tools=[], enable_thinking=False)]
+    global FORMATTING_ITERS
+    print(f"---BEGIN ITERATION {FORMATTING_ITERS}---")
+    print(get_dict_structure(x))
+    out = [TEMPLATE.render(messages=x['messages'], add_generation_prompt=True, tools=[], enable_thinking=False)]
+    print(f"---END ITERATION {FORMATTING_ITERS}---")
+    FORMATTING_ITERS += 1
+    return out
 
 
 def main() -> None:
