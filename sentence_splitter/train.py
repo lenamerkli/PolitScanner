@@ -47,10 +47,10 @@ def format_dataset() -> None:
                 for i in range(len(indices) // 2):
                     a = indices[i * 2 + 1]
                     b = indices[i * 2] + a
-                    for i in [a, b]:
+                    for j in [a, b]:
                         if i > 0:
-                            sentences.append(escape(byte_string[i:].decode('utf-8')))
-                            byte_string = byte_string[:i]
+                            sentences.append(escape(byte_string[j:].decode('utf-8')))
+                            byte_string = byte_string[:j]
                 assistant = f"```text\n{'\n'.join(sentences)}\n```"
                 # line = '{"messages": [{"role": "user", "content": "' + user + '"}, {"role": "assistant", "content": "' + assistant + '"}]}'
                 line = {"messages": [{"role": "user", "content": user}, {"role": "assistant", "content": assistant}]}
@@ -65,7 +65,7 @@ def formatting_func(x, tokenizer):
     global FORMATTING_ITERS
     print(f"---BEGIN ITERATION {FORMATTING_ITERS}---")
     print(get_dict_structure(x))
-    out = [TEMPLATE.render(messages=x['messages'], add_generation_prompt=True, tools=[], enable_thinking=False)]
+    out = TEMPLATE.render(messages=x['messages'], add_generation_prompt=True, tools=[], enable_thinking=False)
     print(f"---END ITERATION {FORMATTING_ITERS}---")
     FORMATTING_ITERS += 1
     return out
