@@ -7,8 +7,7 @@ environ['REQUESTS_CA_BUNDLE'] = where()
 environ['SSL_CERT_FILE'] = where()
 from unsloth import FastLanguageModel
 from unsloth import is_bfloat16_supported
-from unsloth.chat_templates import standardize_sharegpt, get_chat_template, CHAT_TEMPLATES
-from jinja2 import Template
+from unsloth.chat_templates import standardize_sharegpt, get_chat_template
 from trl import SFTTrainer
 from transformers import TrainingArguments
 from datasets import load_dataset
@@ -16,7 +15,6 @@ from data import SentenceSplitterDataset
 from random import seed, sample
 from os.path import exists
 from json import dumps
-from util.debug import get_dict_structure
 from sentence_splitter import BASE_MODEL_NAME, INPUT_SIZE, DTYPE, LOAD_IN_4BIT, escape, fix_multibyte_chars
 
 
@@ -24,9 +22,6 @@ NUM_EXAMPLES = 1_000
 SEED = 1337
 with open('prompt.md', 'r', encoding='utf-8') as _f:
     PROMPT = _f.read()
-TEMPLATE = Template(CHAT_TEMPLATES['qwen3'][0])
-
-FORMATTING_ITERS = 0
 
 
 def format_dataset() -> None:
@@ -48,7 +43,7 @@ def format_dataset() -> None:
                     a = indices[i * 2 + 1]
                     b = indices[i * 2] + a
                     for j in [a, b]:
-                        if i > 0:
+                        if j > 0:
                             sentences.append(escape(byte_string[j:].decode('utf-8')))
                             byte_string = byte_string[:j]
                 assistant = f"```text\n{'\n'.join(sentences)}\n```"
@@ -61,14 +56,10 @@ def format_dataset() -> None:
                 raise e
 
 
-def formatting_func(x, tokenizer):
-    global FORMATTING_ITERS
-    print(f"---BEGIN ITERATION {FORMATTING_ITERS}---")
-    print(get_dict_structure(x))
-    out = TEMPLATE.render(messages=x['messages'], add_generation_prompt=True, tools=[], enable_thinking=False)
-    print(f"---END ITERATION {FORMATTING_ITERS}---")
-    FORMATTING_ITERS += 1
-    return out
+def formatting_prompts_func(examples, tokenizer):
+   convos = examples['messages']
+   texts = [tokenizer.apply_chat_template(convo, tokenize = False, add_generation_prompt = False).removeprefix('<bos>') for convo in convos]
+   return {'text' : texts,}
 
 
 def main() -> None:
@@ -76,7 +67,8 @@ def main() -> None:
     Train the language model
     :return: None
     """
-    format_dataset()
+    if not exists('train.jsonl'):
+        format_dataset()
     # https://github.com/unsloth/unsloth/
     dataset = load_dataset(
         'json',
@@ -91,7 +83,8 @@ def main() -> None:
         load_in_4bit=LOAD_IN_4BIT,
     )
     tokenizer = get_chat_template(tokenizer, chat_template='qwen3')
-    # Do model patching and add fast LoRA weights
+    # https://colab.research.google.com/github/unslothai/notebooks/blob/main/nb/Gemma3N_(4B)-Conversational.ipynb#scrollTo=1ahE8Ys37JDJ
+    dataset = dataset.map(lambda example: formatting_prompts_func(example, tokenizer), batched=True)
     model = FastLanguageModel.get_peft_model(
         model,
         r=16,
@@ -108,7 +101,6 @@ def main() -> None:
     trainer = SFTTrainer(
         model=model,
         train_dataset=dataset,
-        formatting_func=lambda x: formatting_func(x, tokenizer),
         args=TrainingArguments(
             per_device_train_batch_size=2,
             gradient_accumulation_steps=4,
