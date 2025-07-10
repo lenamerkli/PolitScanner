@@ -1,2 +1,4 @@
 *.jsonl
 unsloth_compiled_cache/
+llm_models/
+_unsloth_sentencepiece_temp/

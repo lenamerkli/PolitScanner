@@ -7,21 +7,23 @@ environ['REQUESTS_CA_BUNDLE'] = where()
 environ['SSL_CERT_FILE'] = where()
 from unsloth import FastLanguageModel
 from unsloth import is_bfloat16_supported
-from unsloth.chat_templates import standardize_sharegpt, get_chat_template
+from unsloth.chat_templates import standardize_sharegpt, get_chat_template, train_on_responses_only
 from trl import SFTTrainer
 from transformers import TrainingArguments
 from datasets import load_dataset
 from data import SentenceSplitterDataset
+from datetime import datetime
 from random import seed, sample
 from os.path import exists
 from json import dumps
 from sentence_splitter import BASE_MODEL_NAME, INPUT_SIZE, DTYPE, LOAD_IN_4BIT, escape, fix_multibyte_chars
 
 
-NUM_EXAMPLES = 1_000
+NUM_EXAMPLES = 10_000
 SEED = 1337
 with open('prompt.md', 'r', encoding='utf-8') as _f:
     PROMPT = _f.read()
+OVERWRITE_ALREADY_EXISTS = True
 
 
 def format_dataset() -> None:
@@ -67,7 +69,7 @@ def main() -> None:
     Train the language model
     :return: None
     """
-    if not exists('train.jsonl'):
+    if (not exists('train.jsonl')) or OVERWRITE_ALREADY_EXISTS:
         format_dataset()
     # https://github.com/unsloth/unsloth/
     dataset = load_dataset(
@@ -105,7 +107,7 @@ def main() -> None:
             per_device_train_batch_size=2,
             gradient_accumulation_steps=4,
             warmup_steps=16,
-            max_steps=256,
+            max_steps=1000,
             fp16=not is_bfloat16_supported(),
             bf16=is_bfloat16_supported(),
             logging_steps=1,
@@ -114,8 +116,14 @@ def main() -> None:
             seed=SEED,
         ),
     )
+    trainer = train_on_responses_only(
+        trainer,
+        instruction_part='<|im_start|>user\n',
+        response_part='<|im_start|>assistant\n',
+    )
     trainer.train()
-    model.save_pretrained_gguf('./models', tokenizer, quantization_method='q4_k_m')
+    model.save_pretrained_merged(f"./models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}/", tokenizer)
+    # model.save_pretrained_gguf('./models', tokenizer, quantization_method='q8_0')
 
 
 if __name__ == '__main__':

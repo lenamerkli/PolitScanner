@@ -244,6 +244,15 @@ Rename the build folder:
 sudo mv /opt/build /opt/llama.cpp
 ```
 
+Copy the llama.cpp scripts into the directory:
+
+```shell
+sudo cp /tmp/llama_cpp/llama.cpp/convert_hf_to_gguf.py /opt/llama.cpp/bin/
+sudo cp /tmp/llama_cpp/llama.cpp/convert_hf_to_gguf_update.py /opt/llama.cpp/bin/
+sudo cp /tmp/llama_cpp/llama.cpp/convert_llama_ggml_to_gguf.py /opt/llama.cpp/bin/
+sudo cp /tmp/llama_cpp/llama.cpp/convert_lora_to_gguf.py /opt/llama.cpp/bin/
+```
+
 Modify the environment variables in `~/.bashrc` by adding the following lines to the end of the file:
 
 ```bash

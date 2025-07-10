@@ -3,3 +3,7 @@
 *.bin
 *.json
 *.gguf
+*.txt
+*.jinja
+*.safetensors
+
