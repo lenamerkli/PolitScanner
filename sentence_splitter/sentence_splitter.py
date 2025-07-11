@@ -55,9 +55,10 @@ def split(text: str) -> list:
     text = escape(text)
     user = prompt.replace('{input}', text)
     conversation = f"<|im_start|>user\n{user}\n<|im_end|>\n<|im_start|>assistant\n<think>\n</think>\n"
+    print(conversation)
     process = Popen([
         '/opt/llama.cpp/bin/llama-cli',
-        '-m', f"{Path(__file__).resolve().parent.absolute()}/models/2025-07-10_19-11-50_q4_k_m.gguf",
+        '-m', f"{Path(__file__).resolve().parent.absolute()}/models/2025-07-11_20-24-27_q6_k.gguf",
         '-p', conversation,
     ], stdout=PIPE, stdin=PIPE, text=True)
     process.wait()
@@ -65,6 +66,7 @@ def split(text: str) -> list:
         raise Exception(process.stderr)
     output = process.stdout.read()
     print(repr(output))
+    output = output.replace('\n```\n```', '\n```')
     output = output.rsplit('```')[-2]
     outputs = output.split('\n')
     return [i.replace('\n', '') for i in outputs if len(i) > 4]

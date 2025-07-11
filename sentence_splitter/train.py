@@ -19,6 +19,7 @@ from json import dumps
 from sentence_splitter import BASE_MODEL_NAME, INPUT_SIZE, DTYPE, LOAD_IN_4BIT, escape, fix_multibyte_chars
 
 
+MAX_STEPS = 128
 NUM_EXAMPLES = 10_000
 SEED = 1337
 with open('prompt.md', 'r', encoding='utf-8') as _f:
@@ -37,17 +38,17 @@ def format_dataset() -> None:
                 byte_string: bytes = datapoint[0]
                 indices: list = datapoint[1]
                 byte_string, indices = fix_multibyte_chars(byte_string, indices)
-                indices = list(reversed(indices))
                 text = escape(byte_string.decode('utf-8'))
                 user = PROMPT.replace('{input}', text)
                 sentences = []
+                start = 0
                 for i in range(len(indices) // 2):
-                    a = indices[i * 2 + 1]
-                    b = indices[i * 2] + a
-                    for j in [a, b]:
-                        if j > 0:
-                            sentences.append(escape(byte_string[j:].decode('utf-8')))
-                            byte_string = byte_string[:j]
+                    end_index = indices[i * 2]
+                    num_spaces = indices[i * 2 + 1]
+                    sentence_bytes = byte_string[start:end_index]
+                    sentence = sentence_bytes.decode('utf-8')
+                    sentences.append(escape(sentence))
+                    start = end_index + num_spaces
                 assistant = f"```text\n{'\n'.join(sentences)}\n```"
                 # line = '{"messages": [{"role": "user", "content": "' + user + '"}, {"role": "assistant", "content": "' + assistant + '"}]}'
                 line = {"messages": [{"role": "user", "content": user}, {"role": "assistant", "content": assistant}]}
@@ -58,9 +59,9 @@ def format_dataset() -> None:
                 raise e
 
 
-def formatting_prompts_func(examples, tokenizer):
+def formatting_prompts_func(examples):
     convos = examples['messages']
-    texts = [tokenizer.apply_chat_template(convo, tokenize = False, add_generation_prompt = False).removeprefix('<bos>') for convo in convos]
+    texts = [f"<|im_start|>user\n{convo[0]['content']}\n<|user|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n{convo[1]['content']}" for convo in convos]
     return {'text' : texts,}
 
 
@@ -86,7 +87,7 @@ def main() -> None:
     )
     tokenizer = get_chat_template(tokenizer, chat_template='qwen3')
     # https://colab.research.google.com/github/unslothai/notebooks/blob/main/nb/Gemma3N_(4B)-Conversational.ipynb#scrollTo=1ahE8Ys37JDJ
-    dataset = dataset.map(lambda example: formatting_prompts_func(example, tokenizer), batched=True)
+    dataset = dataset.map(formatting_prompts_func, batched=True)
     print(dataset[100])
     model = FastLanguageModel.get_peft_model(
         model,
@@ -108,7 +109,7 @@ def main() -> None:
             per_device_train_batch_size=2,
             gradient_accumulation_steps=4,
             warmup_steps=16,
-            max_steps=512,
+            max_steps=MAX_STEPS,
             fp16=not is_bfloat16_supported(),
             bf16=is_bfloat16_supported(),
             logging_steps=1,
@@ -124,7 +125,6 @@ def main() -> None:
     )
     trainer.train()
     model.save_pretrained_merged(f"./models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}/", tokenizer)
-    # model.save_pretrained_gguf('./models', tokenizer, quantization_method='q8_0')
 
 
 if __name__ == '__main__':
