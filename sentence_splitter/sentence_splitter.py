@@ -1,3 +1,7 @@
+from subprocess import Popen, PIPE
+from pathlib import Path
+
+
 INPUT_SIZE = 1024
 DTYPE = None
 LOAD_IN_4BIT: bool = True
@@ -44,3 +48,23 @@ def fix_multibyte_chars(text: bytes, indices: list) -> (bytes, list):
             text += bytes([c[1]])
             break
     return text, indices
+
+def split(text: str) -> list:
+    with open(f"{Path(__file__).resolve().parent.absolute()}/prompt.md", 'r', encoding='utf-8') as _f:
+        prompt = _f.read()
+    text = escape(text)
+    user = prompt.replace('{input}', text)
+    conversation = f"<|im_start|>user\n{user}\n<|im_end|>\n<|im_start|>assistant\n<think>\n</think>\n"
+    process = Popen([
+        '/opt/llama.cpp/bin/llama-cli',
+        '-m', f"{Path(__file__).resolve().parent.absolute()}/models/2025-07-10_19-11-50_q4_k_m.gguf",
+        '-p', conversation,
+    ], stdout=PIPE, stdin=PIPE, text=True)
+    process.wait()
+    if process.returncode != 0:
+        raise Exception(process.stderr)
+    output = process.stdout.read()
+    print(repr(output))
+    output = output.rsplit('```')[-2]
+    outputs = output.split('\n')
+    return [i.replace('\n', '') for i in outputs if len(i) > 4]

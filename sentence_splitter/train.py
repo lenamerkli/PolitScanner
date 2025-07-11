@@ -59,9 +59,9 @@ def format_dataset() -> None:
 
 
 def formatting_prompts_func(examples, tokenizer):
-   convos = examples['messages']
-   texts = [tokenizer.apply_chat_template(convo, tokenize = False, add_generation_prompt = False).removeprefix('<bos>') for convo in convos]
-   return {'text' : texts,}
+    convos = examples['messages']
+    texts = [tokenizer.apply_chat_template(convo, tokenize = False, add_generation_prompt = False).removeprefix('<bos>') for convo in convos]
+    return {'text' : texts,}
 
 
 def main() -> None:
@@ -87,6 +87,7 @@ def main() -> None:
     tokenizer = get_chat_template(tokenizer, chat_template='qwen3')
     # https://colab.research.google.com/github/unslothai/notebooks/blob/main/nb/Gemma3N_(4B)-Conversational.ipynb#scrollTo=1ahE8Ys37JDJ
     dataset = dataset.map(lambda example: formatting_prompts_func(example, tokenizer), batched=True)
+    print(dataset[100])
     model = FastLanguageModel.get_peft_model(
         model,
         r=16,
@@ -107,7 +108,7 @@ def main() -> None:
             per_device_train_batch_size=2,
             gradient_accumulation_steps=4,
             warmup_steps=16,
-            max_steps=1000,
+            max_steps=512,
             fp16=not is_bfloat16_supported(),
             bf16=is_bfloat16_supported(),
             logging_steps=1,
