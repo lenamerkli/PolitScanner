@@ -231,10 +231,24 @@ Run the llama.cpp installation script:
 ./install_llama_cpp.sh
 ```
 
-Copy the build folder to the host system and exit the toolbox:
+Copy the build folder to the host system.
 
 ```shell
 sudo cp -r /tmp/llama_cpp/llama.cpp/build /opt
+```
+
+Copy the llama.cpp scripts into the directory:
+
+```shell
+sudo cp /tmp/llama_cpp/llama.cpp/convert_hf_to_gguf.py /opt/build/bin/
+sudo cp /tmp/llama_cpp/llama.cpp/convert_hf_to_gguf_update.py /opt/build/bin/
+sudo cp /tmp/llama_cpp/llama.cpp/convert_llama_ggml_to_gguf.py /opt/build/bin/
+sudo cp /tmp/llama_cpp/llama.cpp/convert_lora_to_gguf.py /opt/build/bin/
+```
+
+Exit the toolbox:
+
+```shell
 exit
 ```
 
@@ -242,15 +256,6 @@ Rename the build folder:
 
 ```shell
 sudo mv /opt/build /opt/llama.cpp
-```
-
-Copy the llama.cpp scripts into the directory:
-
-```shell
-sudo cp /tmp/llama_cpp/llama.cpp/convert_hf_to_gguf.py /opt/llama.cpp/bin/
-sudo cp /tmp/llama_cpp/llama.cpp/convert_hf_to_gguf_update.py /opt/llama.cpp/bin/
-sudo cp /tmp/llama_cpp/llama.cpp/convert_llama_ggml_to_gguf.py /opt/llama.cpp/bin/
-sudo cp /tmp/llama_cpp/llama.cpp/convert_lora_to_gguf.py /opt/llama.cpp/bin/
 ```
 
 Modify the environment variables in `~/.bashrc` by adding the following lines to the end of the file:
