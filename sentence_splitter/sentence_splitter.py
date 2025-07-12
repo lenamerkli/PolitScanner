@@ -1,6 +1,10 @@
-from subprocess import Popen, PIPE
-from pathlib import Path
+import sys
+sys.path.append('/home/lena/Documents/python/PolitScanner/util')
 
+from time import sleep
+from pathlib import Path
+from util.llm import LLaMaCPP
+import typing as t
 
 INPUT_SIZE = 1024
 DTYPE = None
@@ -49,24 +53,22 @@ def fix_multibyte_chars(text: bytes, indices: list) -> (bytes, list):
             break
     return text, indices
 
-def split(text: str) -> list:
+def split(text: str, llm: t.Optional[LLaMaCPP] = None) -> list:
     with open(f"{Path(__file__).resolve().parent.absolute()}/prompt.md", 'r', encoding='utf-8') as _f:
         prompt = _f.read()
     text = escape(text)
     user = prompt.replace('{input}', text)
     conversation = f"<|im_start|>user\n{user}\n<|im_end|>\n<|im_start|>assistant\n<think>\n</think>\n"
     print(conversation)
-    process = Popen([
-        '/opt/llama.cpp/bin/llama-cli',
-        '-m', f"{Path(__file__).resolve().parent.absolute()}/models/2025-07-11_20-24-27_q6_k.gguf",
-        '-p', conversation,
-    ], stdout=PIPE, stdin=PIPE, text=True)
-    process.wait()
-    if process.returncode != 0:
-        raise Exception(process.stderr)
-    output = process.stdout.read()
+    if llm is None:
+        llm = LLaMaCPP()
+        llm.set_model('sentence_splitter_Q6_K.gguf')
+        llm.load_model(print_log=True, seed=42, threads=24, kv_cache_type='q8_0', context=4096)
+    while llm.is_loading() or not llm.is_running():
+        sleep(1)
+    output = llm.generate(conversation)
     print(repr(output))
     output = output.replace('\n```\n```', '\n```')
     output = output.rsplit('```')[-2]
     outputs = output.split('\n')
-    return [i.replace('\n', '') for i in outputs if len(i) > 4]
+    return [i.replace('\n', '') for i in outputs if len(i) > 6]
