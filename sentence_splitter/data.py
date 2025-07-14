@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset
 from torch import tensor
-from sentence_splitter import INPUT_SIZE
+from sentence_splitter import INPUT_SIZE  # noqa
 import typing as t
 
 
