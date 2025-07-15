@@ -1,7 +1,9 @@
 from torch.utils.data import Dataset
 from torch import tensor
-from sentence_splitter import INPUT_SIZE  # noqa
 import typing as t
+
+
+INPUT_SIZE = 1024 ** 2
 
 
 TRAINING_DATA = [

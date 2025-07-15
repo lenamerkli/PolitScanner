@@ -86,13 +86,8 @@ def main() -> None:
             index += base_length
             chunks.append(chunk)
     sentences = []
-    llm2 = LLaMaCPP()
-    llm2.set_model('sentence_splitter_Q6_K.gguf')
-    llm2.load_model(print_log=True, seed=42, threads=24, kv_cache_type='q8_0', context=4096)
-    while llm2.is_loading() or not llm2.is_running():
-        sleep(1)
     for chunk in chunks:
-        chunk_sentences = split(chunk, llm2)
+        chunk_sentences = split(chunk)
         if len(chunk_sentences) == 0:
             continue
         if len(sentences) == 0:
@@ -101,7 +96,6 @@ def main() -> None:
             sentences[-1] += chunk_sentences[0]
         sentences.extend(chunk_sentences[1:])
     print(f"{len(sentences)=}")
-    llm2.stop()
     chunked_sentences = []
     for i in range(0, len(sentences), 3):
         if i == 0:
