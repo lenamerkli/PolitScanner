@@ -1,6 +1,6 @@
 import sys
 sys.path.append('/home/lena/Documents/python/PolitScanner/util')
-from data import SentenceSplitterDataset  # noqa
+from data import DATA  # noqa
 from util.llm import LLaMaCPP
 from random import randint
 from time import sleep
@@ -42,10 +42,10 @@ def fix_multibyte_chars(text: bytes, indices: list) -> (bytes, list):
             break
     return text, indices
 
-def run_ai(llm: LLaMaCPP, error: Exception, byte_string: bytes, sentences: list, sentences_ai: list) -> None:
+def run_ai(llm: LLaMaCPP, error: Exception, string: str, sentences: list, sentences_ai: list) -> None:
     with open('function.py', 'r', encoding='utf-8') as f:
         function = f.read()
-    string = repr(byte_string.decode('utf-8'))
+    string = repr(string)
     sentences_ = [repr(s) for s in sentences]
     sentences_ai_ = [repr(s) for s in sentences_ai]
     prompt = PROMPT.replace('{PROGRAM}', function)
@@ -53,7 +53,7 @@ def run_ai(llm: LLaMaCPP, error: Exception, byte_string: bytes, sentences: list,
     prompt = prompt.replace('{STRING}', string)
     prompt = prompt.replace('{SENTENCES}', f"[{', '.join(sentences_)}]")
     prompt = prompt.replace('{SENTENCES_AI}', f"[{', '.join(sentences_ai_)}]")
-    conversation = f"<|im_start|>user\n{prompt}\n<|im_end|>\n<|im_start|>assistant\n<think>\n"
+    conversation = f"<|im_start|>user\n{prompt}\n<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
     print(conversation)
     output = llm.generate(conversation)
     print(output)
@@ -64,46 +64,27 @@ def run_ai(llm: LLaMaCPP, error: Exception, byte_string: bytes, sentences: list,
 
 
 def train() -> None:
-    dataset = SentenceSplitterDataset(train=True, transform=None, min_length=128, max_length=256, output_size=0,
-                                      disable_pytorch=True)
+    # dataset = SentenceSplitterDataset(train=True, transform=None, min_length=128, max_length=256, output_size=0,
+    #                                   disable_pytorch=True)
     llm = LLaMaCPP()
     # llm.set_model('Qwen3-30B-A3B-Q5_K_M.gguf')
-    llm.set_model('Qwen3-8B-Q5_K_M.gguf')
+    # llm.set_model('Qwen3-8B-Q5_K_M.gguf')
+    llm.set_model('Qwen3-32B-Q4_K_S.gguf')
     llm.load_model(print_log=True, seed=42, threads=16, kv_cache_type='q8_0', context=16384)
     while llm.is_loading() or not llm.is_running():
         sleep(1)
-    while True:
+    for element in DATA:
         try:
-            loop = True
-            indices = []
-            byte_string = None
-            while loop:
-                try:
-                    byte_string, indices = dataset[randint(0, len(dataset) - 1)]
-                    byte_string, indices = fix_multibyte_chars(byte_string, indices)
-                    loop = False
-                except Exception as e:
-                    print(e)
-            sentences = []
-            start = 0
-            for i in range(len(indices) // 2):
-                end_index = indices[i * 2]
-                num_spaces = indices[i * 2 + 1]
-                sentence_bytes = byte_string[start:end_index]
-                sentence = sentence_bytes.decode('utf-8')
-                sentences.append(sentence)
-                start = end_index + num_spaces
-            sentences.append(byte_string[start:].decode('utf-8'))
-            # print(byte_string.decode('utf-8'))
-            # print(sentences)
+            sentences = element['sentences']
+            string = element['string']
             sentences_ai = []
             try:
                 from function import split
-                sentences_ai = split(text=byte_string.decode('utf-8'))
+                sentences_ai = split(text=string)
                 assert sentences == sentences_ai
             except Exception as e:
-                e.add_note(f"Error with datapoint ```{byte_string.decode('utf-8')}```")
-                run_ai(llm, e, byte_string, sentences, sentences_ai)
+                e.add_note(f"Error with datapoint ```{string}```")
+                run_ai(llm, e, string, sentences, sentences_ai)
             finally:
                 del split
         except KeyboardInterrupt:

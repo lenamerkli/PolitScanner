@@ -253,7 +253,7 @@ def calculate_offload_layers(model_name: str, short_model_name: str) -> int:
     """
     free_vram = check_free_vram()
     llm_size = getsize(f"/opt/llms/{model_name}") / (1024 ** 2)
-    llm_size = llm_size * 1.05
+    llm_size = llm_size * 1.1
     layers = LLMS[short_model_name]['layers']
     vram_per_layer = llm_size / layers
     return min(int(free_vram / vram_per_layer), layers)

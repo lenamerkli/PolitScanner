@@ -11,4 +11,4 @@ This happened with the string ```{STRING}```
 It should have split the string into these sentences: ```{SENTENCES}```
 But it returned these sentences: ```{SENTENCES_AI}```
 Your job is to modify the code in a way that the unittest passes. Return the entire code between two pairs of triple backticks.
-/think
+/no_think
