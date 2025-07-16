@@ -9,7 +9,7 @@ from util.llm import LLaMaCPP
 from os.path import exists
 from json import load as json_load
 from time import sleep
-from sentence_splitter.sentence_splitter import split, INPUT_SIZE
+from sentence_splitter.sentence_splitter import split
 
 
 MAX_DB_RESULTS = 12
@@ -71,30 +71,7 @@ def main() -> None:
         text = f.read()
     llm = LLaMaCPP()
     llm.set_model('Qwen3-30B-A3B-Q5_K_M.gguf')
-    n = (len(text) + INPUT_SIZE - 1) // INPUT_SIZE
-    base_length = len(text) // n
-    remainder = len(text) % n
-    chunks = []
-    index = 0
-    for i in range(n):
-        if i < remainder:
-            chunk = text[index:index + base_length + 1]
-            index += base_length + 1
-            chunks.append(chunk)
-        else:
-            chunk = text[index:index + base_length]
-            index += base_length
-            chunks.append(chunk)
-    sentences = []
-    for chunk in chunks:
-        chunk_sentences = split(chunk)
-        if len(chunk_sentences) == 0:
-            continue
-        if len(sentences) == 0:
-            sentences.append(chunk_sentences[0])
-        else:
-            sentences[-1] += chunk_sentences[0]
-        sentences.extend(chunk_sentences[1:])
+    sentences = split(text)
     print(f"{len(sentences)=}")
     chunked_sentences = []
     for i in range(0, len(sentences), 3):
