@@ -12,6 +12,7 @@ MODELS = {
     'Ministral-8B-Instruct-2410-Q4_K_S.gguf': 'https://huggingface.co/bartowski/Ministral-8B-Instruct-2410-GGUF/resolve/main/Ministral-8B-Instruct-2410-Q4_K_S.gguf',
     'Qwen3-30B-A3B-Q5_K_M.gguf': 'https://huggingface.co/bartowski/Qwen_Qwen3-30B-A3B-GGUF/resolve/main/Qwen_Qwen3-30B-A3B-Q5_K_M.gguf',
     'Qwen3-8B-Q5_K_M.gguf': 'https://huggingface.co/bartowski/Qwen_Qwen3-8B-GGUF/resolve/main/Qwen_Qwen3-8B-Q5_K_M.gguf',
+    'Qwen3-32B-Q4_K_S.gguf': 'https://huggingface.co/unsloth/Qwen3-32B-GGUF/resolve/main/Qwen3-32B-Q4_K_S.gguf',
 }
 
 
