@@ -16,6 +16,8 @@ MAX_DIFFERENCE = 1.25
 MAX_DB_RESULTS = 12
 with open('prompt.md', 'r', encoding='utf-8') as _f:
     PROMPT = _f.read()
+with open('grammar.gbnf', 'r', encoding='utf-8') as _f:
+    GRAMMAR = _f.read()
 
 
 def db_read(text: str):
@@ -55,7 +57,7 @@ def process(sentences: list, llm: LLaMaCPP) -> list:
         prompt = prompt.replace('{' + f'SENTENCE_{i+1}' + '}', sentence)
     prompt = f"<|im_start|>user\n{prompt}\n/no_think\n<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n"
     print(prompt)
-    output = llm.generate(prompt, enable_thinking=False)
+    output = llm.generate(prompt, enable_thinking=False, grammar=GRAMMAR)
     print(output)
     output = output.split('[')[-1].split(']')[0]
     truths = []

@@ -4,3 +4,4 @@ train.jsonl
 llm_models/
 unsloth_compiled_cache/
 models/
+grammar.gbnf
