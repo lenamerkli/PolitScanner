@@ -23,7 +23,7 @@ def split(text: str) -> list[str]:
                 ( not text[i + 2].isupper()) or
                 (text[i - 1].isdigit())
             ):
-                text[i] = placeholder
+                text = text[:i] + placeholder + text[i+1:]
     array = [text]
     for value in ['\n', '. ', '? ']:
         array = split_list(array, value)

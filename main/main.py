@@ -71,7 +71,10 @@ def main() -> None:
     with open('input.txt', 'r') as f:
         text = f.read()
     llm = LLaMaCPP()
-    llm.set_model('Qwen3-30B-A3B-Q5_K_M.gguf')
+    if exists('/opt/llms/Qwen3-1.7B-PolitScanner-Q5_K_S.gguf'):
+        llm.set_model('Qwen3-1.7B-PolitScanner-Q5_K_S.gguf')
+    else:
+        llm.set_model('Qwen3-30B-A3B-Q5_K_M.gguf')
     sentences = split(text)
     print(f"{len(sentences)=}")
     chunked_sentences = []
