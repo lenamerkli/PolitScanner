@@ -9,9 +9,10 @@ from util.llm import LLaMaCPP
 from os.path import exists
 from json import load as json_load
 from time import sleep
-from sentence_splitter.sentence_splitter import split
+from sentence_splitter import split  # noqa
 
 
+MAX_DIFFERENCE = 1.25
 MAX_DB_RESULTS = 12
 with open('prompt.md', 'r', encoding='utf-8') as _f:
     PROMPT = _f.read()
@@ -30,7 +31,7 @@ def process(sentences: list, llm: LLaMaCPP) -> list:
         return []
     topic_ids = []
     for i, result in enumerate(db_results['ids'][0]):
-        if db_results['distances'][0][i] < 1.25:
+        if db_results['distances'][0][i] < MAX_DIFFERENCE:
             id_ = result.split('-')[0]
             if id_ not in topic_ids:
                 topic_ids.append(id_)

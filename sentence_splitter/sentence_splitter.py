@@ -1,5 +1,6 @@
 import sys
 sys.path.append('/home/lena/Documents/python/PolitScanner/util')
+sys.path.append('/home/lena/Documents/python/PolitScanner/sentence_splitter')
 from data import DATA  # noqa
 from util.llm import LLaMaCPP
 from random import randint
