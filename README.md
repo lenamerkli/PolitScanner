@@ -250,16 +250,22 @@ sudo cp /tmp/llama_cpp/llama.cpp/convert_llama_ggml_to_gguf.py /opt/build/bin/
 sudo cp /tmp/llama_cpp/llama.cpp/convert_lora_to_gguf.py /opt/build/bin/
 ```
 
+Move the build directory into the home directory:
+
+```shell
+sudo mv /opt/build/ ~/build/
+```
+
 Exit the toolbox:
 
 ```shell
 exit
 ```
 
-Rename the build folder:
+Move the build folder:
 
 ```shell
-sudo mv /opt/build /opt/llama.cpp
+sudo mv ~/build /opt/llama.cpp
 ```
 
 Modify the environment variables in `~/.bashrc` by adding the following lines to the end of the file:
