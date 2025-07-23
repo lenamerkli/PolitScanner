@@ -111,8 +111,6 @@ Create the toolbox environment with the following command on the host:
 toolbox create --image registry.fedoraproject.org/fedora-toolbox:41 --container fedora-toolbox-41-cuda
 ```
 
-Although Fedora 42 and Nobara 42 are available, this guide uses the `Fedora 41` toolbox environment, as it has not been tested with the newer versions.
-
 Enter the toolbox with the following command on host. All following commands in this section are to be executed in the toolbox.
 
 ```shell
@@ -223,6 +221,12 @@ Enter the CUDA toolbox:
 
 ```shell
 toolbox enter fedora-toolbox-41-cuda
+```
+
+Install curl:
+
+```shell
+sudo dnf install curl libcurl libcurl-devel
 ```
 
 Run the llama.cpp installation script:
