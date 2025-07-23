@@ -8,8 +8,8 @@ TEMPLATE = """
 root ::= "```python\\n[" list "]\\n```"
 list ::= %%
 """
-TEMPLATE_ITEM = '["\'%%\'"]?'
-SEPARATOR = ' [", "]? '
+TEMPLATE_ITEM = '("\'%%\'")?'
+SEPARATOR = ' (", ")? '
 
 
 def main() -> None:
