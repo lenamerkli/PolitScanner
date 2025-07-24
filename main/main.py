@@ -20,15 +20,14 @@ with open('grammar.gbnf', 'r', encoding='utf-8') as _f:
     GRAMMAR = _f.read()
 
 
-def db_read(text: str):
+def db_read(texts: list[str]):
     client = chromadb.PersistentClient(path=Path(__file__).resolve().parent.parent.absolute().__str__() + '/data/database.chroma')
     collection = client.get_collection(name='PolitScanner')
-    return collection.query(query_texts=[text], n_results=MAX_DB_RESULTS)
+    return collection.query(query_texts=texts, n_results=MAX_DB_RESULTS)
 
 
 def process(sentences: list, llm: LLaMaCPP) -> list:
-    text = ' '.join(sentences)
-    db_results = db_read(text)
+    db_results = db_read(sentences)
     if len(db_results['ids'][0]) == 0:
         return []
     topic_ids = []
@@ -48,6 +47,7 @@ def process(sentences: list, llm: LLaMaCPP) -> list:
             topics.append(json_load(f))
             titles[topics[-1]['topic']] = len(topics) - 1
     formatted_topics = ''
+    topics.sort(key=lambda x: x['topic'])
     for topic in topics:
         if len(formatted_topics) > 0:
             formatted_topics += '\n\n'

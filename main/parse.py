@@ -20,7 +20,7 @@ def main() -> None:
                 chunk = sentences[i - 1:] + ['EMPTY']
             else:
                 chunk = sentences[i - 1:i + 4]
-            db_results = db_read(' '.join([v.split(' #')[0] for v in chunk if v != 'EMPTY']))
+            db_results = db_read([v.split(' #')[0] for v in chunk if v != 'EMPTY'])
             if len(db_results['ids'][0]) == 0:
                 continue
             topic_ids = []
@@ -40,7 +40,7 @@ def main() -> None:
                     topics.append(json_load(f))
                     titles[topics[-1]['topic']] = len(topics) - 1
             formatted_topics = ''
-            topics.sort(key=lambda x: titles[x['topic']])
+            topics.sort(key=lambda x: x['topic'])
             for topic in topics:
                 if len(formatted_topics) > 0:
                     formatted_topics += '\n\n'

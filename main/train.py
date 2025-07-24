@@ -20,7 +20,7 @@ BASE_MODEL_NAME = 'unsloth/Qwen3-1.7B-unsloth-bnb-4bit'
 
 def formatting_prompts_func(examples):
     convos = examples['messages']
-    texts = [f"<|im_start|>user\n{convo[0]['content']}\n/no_think\n<|user|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n{convo[1]['content']}" for convo in convos]
+    texts = [f"<|im_start|>user\n{convo[0]['content']}\n/no_think\n<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n{convo[1]['content']}" for convo in convos]
     return {'text' : texts,}
 
 
