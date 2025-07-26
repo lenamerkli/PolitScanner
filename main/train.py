@@ -12,7 +12,7 @@ from datetime import datetime
 
 SEED = 2025-8-10
 MAX_SEQ_LENGTH = 4096
-MAX_STEPS = 300
+MAX_STEPS = 1024
 DTYPE = None
 LOAD_IN_4BIT: bool = True
 BASE_MODEL_NAME = 'unsloth/Qwen3-1.7B-unsloth-bnb-4bit'

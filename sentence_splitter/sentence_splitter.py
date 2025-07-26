@@ -5,8 +5,9 @@ from data import DATA  # noqa
 from util.llm import LLaMaCPP
 from random import randint
 from time import sleep
+from pathlib import Path
 
-with open('prompt.md', 'r', encoding='utf-8') as _f:
+with open(Path(__file__).resolve().parent.absolute().__str__() + '/prompt.md', 'r', encoding='utf-8') as _f:
     PROMPT = _f.read()
 SPECIAL = [c.encode('utf-8') for c in 'äöüÄÖÜéèà'] + [b'\xc2\xab', b'\xc2\xbb']  # noqa
 

@@ -12,12 +12,16 @@ from time import sleep
 from sentence_splitter import split  # noqa
 
 
-MAX_DIFFERENCE = 1.2
+MAX_DIFFERENCE = 1.3
 MAX_DB_RESULTS = 10
 with open('prompt.md', 'r', encoding='utf-8') as _f:
     PROMPT = _f.read()
-with open('grammar.gbnf', 'r', encoding='utf-8') as _f:
-    GRAMMAR = _f.read()
+GBNF_TEMPLATE = """
+root ::= "```python\\n[" list "]\\n```"
+list ::= %%
+"""
+GBNF_TEMPLATE_ITEM = '("\'%%\'")?'
+GBNF_SEPARATOR = ' (", ")? '
 
 
 def db_read(texts: list[str]):
@@ -48,21 +52,28 @@ def process(sentences: list, llm: LLaMaCPP) -> list:
             topics.append(json_load(f))
             titles[topics[-1]['topic']] = len(topics) - 1
     formatted_topics = ''
+    titles_list = list(titles.keys())
+    titles_list.sort()
+    items = []
+    for title in titles_list:
+        items.append(GBNF_TEMPLATE_ITEM.replace('%%', title))
+    grammar = GBNF_TEMPLATE.replace('%%', GBNF_SEPARATOR.join(items))
     topics.sort(key=lambda x: x['topic'])
     for topic in topics:
         if len(formatted_topics) > 0:
-            formatted_topics += '\n\n'
-        formatted_topics += f"'{topic['topic']}' - Beispielsätze:\n{'\n'.join('- ' + statement for i, statement in enumerate(topic['original_statements']) if i < 3)}"
+            formatted_topics += '\n'
+        # formatted_topics += f"'{topic['topic']}' - Beispielsätze:\n{'\n'.join('- ' + statement for i, statement in enumerate(topic['original_statements']) if i < 3)}"
+        formatted_topics += f"'{topic['topic']}'"
     prompt = PROMPT.replace('{TOPICS}', formatted_topics)
     for i, sentence in enumerate(sentences):
         prompt = prompt.replace('{' + f'SENTENCE_{i+1}' + '}', sentence)
     prompt = f"<|im_start|>user\n{prompt}\n/no_think\n<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n"
     print(prompt)
-    output = llm.generate(prompt, enable_thinking=False, grammar=GRAMMAR)
+    output = llm.generate(prompt, enable_thinking=False, grammar=grammar, temperature=0.0)
     print(output)
     output = output.split('[')[-1].split(']')[0]
     truths = []
-    for title in titles.keys():
+    for title in titles_list:
         if title in output:
             truths.append(topics[titles[title]]['fact'])
     return truths
@@ -85,7 +96,7 @@ def main() -> None:
         if i == 0:
             chunk2 = ['EMPTY'] + sentences[:4]
         elif i + 3 >= len(sentences):
-            chunk2 = sentences[i - 1:] + ['EMPTY']
+            chunk2 = sentences[-5:-1] + ['EMPTY']
         else:
             chunk2 = sentences[i - 1:i + 4]
         chunked_sentences.append(chunk2)

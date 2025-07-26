@@ -17,7 +17,7 @@ def main() -> None:
             if i == 0:
                 chunk = ['EMPTY'] + sentences[:4]
             elif i + 3 >= len(sentences):
-                chunk = sentences[i - 1:] + ['EMPTY']
+                chunk = sentences[-5:-1] + ['EMPTY']
             else:
                 chunk = sentences[i - 1:i + 4]
             db_results = db_read([v.split(' #')[0] for v in chunk if v != 'EMPTY'])
@@ -43,8 +43,9 @@ def main() -> None:
             topics.sort(key=lambda x: x['topic'])
             for topic in topics:
                 if len(formatted_topics) > 0:
-                    formatted_topics += '\n\n'
-                formatted_topics += f"'{topic['topic']}' - Beispielsätze:\n{'\n'.join('- ' + statement for i, statement in enumerate(topic['original_statements']) if i < 3)}"
+                    formatted_topics += '\n'
+                # formatted_topics += f"'{topic['topic']}' - Beispielsätze:\n{'\n'.join('- ' + statement for i, statement in enumerate(topic['original_statements']) if i < 3)}"
+                formatted_topics += f"'{topic['topic']}'"
             user = PROMPT.replace('{TOPICS}', formatted_topics)
             for j, sentence in enumerate(chunk):
                 user = user.replace('{' + f"SENTENCE_{j+1}" + '}', sentence.split(' #')[0])
