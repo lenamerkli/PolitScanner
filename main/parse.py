@@ -44,7 +44,7 @@ def main() -> None:
             for topic in topics:
                 if len(formatted_topics) > 0:
                     formatted_topics += '\n\n'
-                formatted_topics += f"'{topic['topic']}' - Beispielsätze:\n{'\n'.join('- ' + statement for i, statement in enumerate(topic['original_statements']) if i < 4)}"
+                formatted_topics += f"'{topic['topic']}' - Beispielsätze:\n{'\n'.join('- ' + statement for i, statement in enumerate(topic['original_statements']) if i < 3)}"
             user = PROMPT.replace('{TOPICS}', formatted_topics)
             for j, sentence in enumerate(chunk):
                 user = user.replace('{' + f"SENTENCE_{j+1}" + '}', sentence.split(' #')[0])

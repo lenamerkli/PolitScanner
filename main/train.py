@@ -10,9 +10,9 @@ from transformers import TrainingArguments
 from datasets import load_dataset
 from datetime import datetime
 
-SEED = 1337
+SEED = 2025-8-10
 MAX_SEQ_LENGTH = 4096
-MAX_STEPS = 256 * 3
+MAX_STEPS = 300
 DTYPE = None
 LOAD_IN_4BIT: bool = True
 BASE_MODEL_NAME = 'unsloth/Qwen3-1.7B-unsloth-bnb-4bit'

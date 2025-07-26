@@ -12,8 +12,8 @@ from time import sleep
 from sentence_splitter import split  # noqa
 
 
-MAX_DIFFERENCE = 1.25
-MAX_DB_RESULTS = 12
+MAX_DIFFERENCE = 1.2
+MAX_DB_RESULTS = 10
 with open('prompt.md', 'r', encoding='utf-8') as _f:
     PROMPT = _f.read()
 with open('grammar.gbnf', 'r', encoding='utf-8') as _f:
@@ -28,6 +28,7 @@ def db_read(texts: list[str]):
 
 def process(sentences: list, llm: LLaMaCPP) -> list:
     db_results = db_read(sentences)
+    print(db_results)
     if len(db_results['ids'][0]) == 0:
         return []
     topic_ids = []
@@ -51,7 +52,7 @@ def process(sentences: list, llm: LLaMaCPP) -> list:
     for topic in topics:
         if len(formatted_topics) > 0:
             formatted_topics += '\n\n'
-        formatted_topics += f"'{topic['topic']}' - Beispielsätze:\n{'\n'.join('- ' + statement for i, statement in enumerate(topic['original_statements']) if i < 4)}"
+        formatted_topics += f"'{topic['topic']}' - Beispielsätze:\n{'\n'.join('- ' + statement for i, statement in enumerate(topic['original_statements']) if i < 3)}"
     prompt = PROMPT.replace('{TOPICS}', formatted_topics)
     for i, sentence in enumerate(sentences):
         prompt = prompt.replace('{' + f'SENTENCE_{i+1}' + '}', sentence)
