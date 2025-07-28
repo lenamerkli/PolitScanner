@@ -1,0 +1,259 @@
+\documentclass[a4paper,11pt]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[hyphens]{xurl}
+\usepackage{csquotes}
+\usepackage{pgfplots}
+\usepackage[hidelinks]{hyperref}
+\usepackage[backend=bibtex,urldate=iso]{biblatex}
+
+
+\newenvironment{itquote}
+	{\begin{quote}\itshape}
+	{\end{quote}\ignorespacesafterend}
+
+\pgfplotsset{compat=1.18}
+
+\addbibresource{references.bib}
+
+
+\title{Automatic Detection of common Incorrect Statements in Speeches of Swiss Politicians}
+\author{Lena Merkli}
+
+\begin{document}
+	\maketitle
+	
+	\begin{abstract}
+		Swiss politicians lie~\cite{SRF2022MachtWahrheit}.
+		And they mostly get away with it~\cite{Hirstein2023}.
+		\enquote{One reason for this is that fact checks, which can only be carried out retrospectively, are surprisingly ineffective. Listeners still remember the false information. The correction is forgotten.} -- Philipp Gerlach~\cite{SRF2022MachtWahrheit}.
+		This technical report provides a comprehensive overview of the artificial intelligence components of the PolitScanner project.
+		It aims to automatically detect false narratives and fake news in the speeches of Swiss politicians while avoiding the inaccuracies inherent in Large Language Models.
+		\\\\
+		All code can be found on GitHub~\url{https://github.com/lenamerkli/PolitScanner}.
+		An inference-only example is available at~\url{https://huggingface.co/lenamerkli/PolitScanner}.
+		\\\\
+		This is an entry for the Swiss AI Challenge 2025.
+		More information can be found at~\url{https://www.ki-challenge.ch/}.
+	\end{abstract}
+
+	\tableofcontents
+
+	\chapter{System Architecture}\label{ch:system-architecture}
+
+		\section{Database}\label{sec:database}
+			At the core sits a vector database that stores facts and sentences talking about the topics relevant to these facts.
+	    	These facts are available in a human-readable format at~\url{https://github.com/lenamerkli/PolitScanner/tree/main/data/raw}.
+	    	ChromaDB has been chosen as it is a high performance vector database that is straightforward to use and has excellent python integration~\cite{chromadb}.
+
+		\section{Inference Pipeline}\label{sec:inference-pipeline}
+			A speech is split into sentences using a custom sentence splitter.
+	    	These sentences are then grouped into overlapping chunks to provide context.
+	    	Each chunk is used to query the vector database for relevant topics.
+	    	A fine-tuned large language model checks if the topics are relevant to the statements in the chunk.
+
+	    \section{Avoiding Large Language Model Inaccuracies}\label{sec:avoiding-large-language-model-inaccuracies}
+			Large Language Models and other machine learning technologies are exclusively used to find the relevant facts.
+            They have no influence on the presented facts.
+	        Letting incorrect statements pass without detection is the worst that any machine learning based approach can do.
+			An exception to this is the sentence splitter that could alter the meaning of the provided speech.
+	        But as the sentence splitter iteratively improves python code, this would be transparent to the developers and users.
+
+	    \section{Data Collection and Annotation}\label{sec:data-collection-and-annotation}
+			All datasets in the PolitScanner project were annotated by a human.
+			Facts were collected by researching on the internet biased by the developers.
+			The dataset containing the facts has only 23 entries; enough for a proof-of-concept but way too little for a real-world application.
+            The base texts to train the sentence splitter stem from the Swiss Parliament website~\cite{parliamentCH}.
+	        To train the main model, speeches from the parliamentary website along with news articles (primarily interviews) were used for the base texts and annotated by the developers.
+
+	\chapter{Training}\label{ch:training}
+		\section{Sentence Splitter}\label{sec:sentence-splitter}
+	        In each iteration, an input is provided to the current version and an assert-check is performed.
+	        Any resulting errors are given to a local Large Language Model alongside the input, the expected output and the actual output, if available.
+	        The model is given the task to improve the core functionality of the sentence splitter.
+	        Our testing has shown, that the model should be larger than 20 billion parameters (dense) for acceptable results.
+
+	    \section{Main Model}\label{sec:main-model}
+	        The main model is a fine-tuned version of \enquote{Qwen3-1.7B}~\cite{qwen3}.
+	        This choice has been made due to the following reasons:
+	        \begin{itemize}
+	        	\item It is a good and modern Large Language Model
+				\item Downloading the model is possible
+				\item Qwen3 is available in different sizes~\cite{qwen3}
+	        	\item All its sizes are compatible with bits-and-bytes~\cite{dettmers20228bitoptimizersblockwisequantization}\cite{dettmers2023qloraefficientfinetuningquantized}
+				\item Both UnslothAI and llama.cpp support Qwen3~\cite{unsloth}\cite{llamacpp}
+	        \end{itemize}
+	        One drawback of this selection is the Chinese censorship present in the models~\cite{lin2024chinese}
+	        \include{plots.tex}
+
+	\chapter{Results \& Discussion}\label{ch:results-and-discussion}
+		\section{Example Input}\label{sec:example-input}
+	        As an example, we consider the following input:
+	        \begin{itquote}
+				Jetzt ist ja Klima ein grosses Thema.
+				Sie haben sich bisher nicht gross geäussert.
+				Jetzt ist eine Strategie in Zürich rausgekommen, man will die rot-grüne Klimapanik bekämpfen.
+				Wie stehen Sie jetzt zu diesem Thema?
+				Wie stehen Sie zu diesen Demonstrationen von all diesen Kindern und Schülern, die wöchentlich auf die Strasse gehen?
+				Die, die auf die Strasse gehen und sagen, wir sind für ein gesundes Klima, da kann ich niemandem dagegen sein.
+				Das ist ja schön, wenn sie das machen.
+				Aber was dahinter steht, politisch bei den Grünen, das sind Sachen, die ganz verwerflich sind.
+				Die wollen jetzt das lösen, mehr Eingriffe vom Staat, mehr Steuern, Abgaben, Gebühren, 20 ApB fürs Benzin, Heizkosten bis zu 1400 Franken pro Haushalt.
+				Dann, was wir sollen essen und nicht sollen essen und wie wir sollen essen und wie wir sollen leben und wohnen und wie gross die Wohnungen sind, das hört nicht mehr auf.
+				Gegen das sind wir massiv.
+				Das ist ein Eingriff in die Freiheit und bringt dem Klima schlussendlich gar nichts.
+				Was würde Ihrer Meinung nach etwas bringen, um den Klimawandel zu stoppen?
+				Weiterfahren mit dem Programm, das wir jetzt haben.
+				Wir müssen mal schauen, was wir schon alles haben.
+				Wir haben die ganze Gewässerverschmutzung unter Kontrolle.
+				Wir haben saubere Gewässer, sagen mir die Fischer, oder?
+				Weil wir sogar das Meteowasser reinigen.
+				Wir haben Rauchgasreinigung.
+				Wir haben beim Auto Abgasvorschriften eingeführt.
+				Wir gehen noch weiter mit dem.
+				Muss ja technologisch möglich sein.
+				Und dann die Innovation nicht vom Staat fördern, sondern schauen, dass die Privaten etwas machen.
+				Wer hat ein Elektroauto?
+				Wer hat ein Hybrid gemacht?
+				Nicht der Staat und auch nicht die Grünen, sondern die Autoindustrie, die Wirtschaft hat das entwickelt.
+				Kommt mit dem.
+				Ich höre, sie arbeiten schon an den Flugzeugen.
+				Sie wollen abgasfreie Flugzeuge.
+				Auf der Lärmseite höre ich, das sind doch Massnahmen, die wir treffen müssen.
+				Wir treffen sie nicht, weil das Klima sonst kaputt geht, sondern weil wir saubere Luft, reines Wasser, gesunden Boden wollen.
+				Das war immer das Programm und bei dem müssen wir bleiben.
+				Und dann wird es gut kommen.
+				Kann man denn mit einer Klima-Offensive bei der SVP rechnen?
+				Weil bisher hat man eher nur gehört, auch gerade von Herr Köppel, die Politik der anderen, die Klimapolitik der anderen, lehnen wir ab.
+				Aber einen Vorschlag von ihnen haben wir noch nicht.
+				Wir brauchen keine.
+				Wir machen schon alles.
+				Das habe ich gerade eben gesagt.
+				Das müssen wir weiterführen.
+				Das ist aber theoretisch nichts machen.
+				Diese Strategie hat ja nicht wirklich \ldots
+				Nichts falsches machen.
+				Sie möchten gerne, dass wir die falschen Massnahmen machen.
+				Jetzt wollen wir mehr Lenkungsabgaben.
+				Jetzt wollen wir mehr für das Benzin.
+				Das haben die in den Städten, die das Tram vor der Tür haben, die können das gut sagen.
+				Die Leute der Agglomeration, die in die Stadt möchten, wo Züge und alles verstopft ist.
+				Bei der Zuwanderung, die der Hauptgrund ist, machen die nichts.
+				Da sind wir in der Offensive.
+				Jetzt kommt ja die Begrenzungsinitiative.
+			\end{itquote}
+	        This is the transcript of the interview with Christoph Blocher, a billionaire and former member of the Swiss Federal Council~\cite{blocher}.
+	        It has been published in the Swiss digital newspaper \enquote{Nau.ch}~\cite{baerlocher2019} and was chosen as it has a large overlap with the included test database.
+	        Only minor parts are in the training data and the rest is new to the Large Language Model.
+
+	    \section{Output}\label{sec:output}
+			\begin{itquote}
+				Jetzt ist ja Klima ein grosses Thema.\\
+				Sie haben sich bisher nicht gross geäussert.\\
+				Jetzt ist eine Strategie in Zürich rausgekommen, man will die rot-grüne Klimapanik bekämpfen.\\
+				\\
+				  \# Hinweis: Eine Abnahme des Autoverkehrs im Vergleich zu anderen Verkehrsteilnehmer hat positive Auswirkungen auf das lokale Gewerbe.\\
+				  \# Hinweis: Mit Ausnahme des Weinbaus ist in der Landwirtschaft wegen der durch den Klimawandel verursachten Trockenheit praktisch überall mit negativen Auswirkungen zu rechnen.\\
+				  \# Hinweis: Die BILD-Zeitung verbreitete Lügen über die Berliner Polizistin J.S., welche die BILD später selber als unwahr bestätigte.\\
+				Wie stehen Sie jetzt zu diesem Thema?\\
+				Wie stehen Sie zu diesen Demonstrationen von all diesen Kindern und Schülern, die wöchentlich auf die Strasse gehen?\\
+				Die, die auf die Strasse gehen und sagen, wir sind für ein gesundes Klima, da kann ich niemandem dagegen sein.\\
+				\\
+				  \# Hinweis: Eine Abnahme des Autoverkehrs im Vergleich zu anderen Verkehrsteilnehmer hat positive Auswirkungen auf das lokale Gewerbe.\\
+				  \# Hinweis: Die BILD-Zeitung verbreitete Lügen über die Berliner Polizistin J.S., welche die BILD später selber als unwahr bestätigte.\\
+				  \# Hinweis: Ozonlöcher waren eine erhebliche Gefahr für die Umwelt und die menschliche Gesundheit, da sie die schädlichen UV-Strahlen der Sonne direkt auf die Erdoberfläche lassen. Ozonlöcher sind heute keine Probleme mehr, weil die Welt konkret handelte – anders als beim Klimawandel. Im Montreal-Protokoll von 1987 wurden ganze Stoffklassen verboten.\\
+				Das ist ja schön, wenn sie das machen.\\
+				Aber was dahinter steht, politisch bei den Grünen, das sind Sachen, die ganz verwerflich sind.\\
+				Die wollen jetzt das lösen, mehr Eingriffe vom Staat, mehr Steuern, Abgaben, Gebühren, 20 ApB fürs Benzin, Heizkosten bis zu 1400 Franken pro Haushalt.\\
+				\\
+				  \# Hinweis: Gemäss Parteien, die zu dem politisch-rechten Flügel gezählt werden, ist ``woke'' ein ``umgangssprachlicher Begriff für einen allgemeinen Glauben an systembedingte Ungerechtigkeiten''.\\
+				  \# Hinweis: Ozonlöcher waren eine erhebliche Gefahr für die Umwelt und die menschliche Gesundheit, da sie die schädlichen UV-Strahlen der Sonne direkt auf die Erdoberfläche lassen. Ozonlöcher sind heute keine Probleme mehr, weil die Welt konkret handelte – anders als beim Klimawandel. Im Montreal-Protokoll von 1987 wurden ganze Stoffklassen verboten.\\
+				Dann, was wir sollen essen und nicht sollen essen und wie wir sollen essen und wie wir sollen leben und wohnen und wie gross die Wohnungen sind, das hört nicht mehr auf.\\
+				Gegen das sind wir massiv.\\
+				Das ist ein Eingriff in die Freiheit und bringt dem Klima schlussendlich gar nichts.\\
+				\\
+				  \# Hinweis: In der Wissenschaft herrscht ein starker wissenschaftlicher Konsens darüber, dass ein Klimawandel stattfindet, dieser in diesem Ausmass noch nie ansatzweise existierte, und dass der aktuelle Klimawandel fast ausschliesslich durch menschliche Aktivitäten verursacht wird.\\
+				Was würde Ihrer Meinung nach etwas bringen, um den Klimawandel zu stoppen?\\
+				Weiterfahren mit dem Programm, das wir jetzt haben.\\
+				Wir müssen mal schauen, was wir schon alles haben.\\
+				\\
+				Wir haben die ganze Gewässerverschmutzung unter Kontrolle.\\
+				Wir haben saubere Gewässer, sagen mir die Fischer, oder?\\
+				Weil wir sogar das Meteowasser reinigen.\\
+				\\
+				Wir haben Rauchgasreinigung.\\
+				Wir haben beim Auto Abgasvorschriften eingeführt.\\
+				Wir gehen noch weiter mit dem.\\
+				\\
+				  \# Hinweis: Gemäss Parteien, die zu dem politisch-rechten Flügel gezählt werden, ist ``woke'' ein ``umgangssprachlicher Begriff für einen allgemeinen Glauben an systembedingte Ungerechtigkeiten''.\\
+				  \# Hinweis: In der Wissenschaft herrscht ein starker wissenschaftlicher Konsens darüber, dass ein Klimawandel stattfindet, dieser in diesem Ausmass noch nie ansatzweise existierte, und dass der aktuelle Klimawandel fast ausschliesslich durch menschliche Aktivitäten verursacht wird.\\
+				  \# Hinweis: Laut dem Seco-Bericht wanderten 2017 nur rund 31'250 Personen aus EU- und EFTA-Ländern ein. Das sind 50 Prozent weniger als noch 2013. Zudem zeigt der Bericht, dass rund die Hälfte aller Personen die 2009 in die Schweiz kamen, wieder ausgereist sind.\\
+				Muss ja technologisch möglich sein.\\
+				Und dann die Innovation nicht vom Staat fördern, sondern schauen, dass die Privaten etwas machen.\\
+				Wer hat ein Elektroauto?\\
+				\\
+				  \# Hinweis: In der Wissenschaft herrscht ein starker wissenschaftlicher Konsens darüber, dass ein Klimawandel stattfindet, dieser in diesem Ausmass noch nie ansatzweise existierte, und dass der aktuelle Klimawandel fast ausschliesslich durch menschliche Aktivitäten verursacht wird.\\
+				Wer hat ein Hybrid gemacht?\\
+				Nicht der Staat und auch nicht die Grünen, sondern die Autoindustrie, die Wirtschaft hat das entwickelt.\\
+				Kommt mit dem.\\
+				\\
+				  \# Hinweis: Eine Abnahme des Autoverkehrs im Vergleich zu anderen Verkehrsteilnehmer hat positive Auswirkungen auf das lokale Gewerbe.\\
+				  \# Hinweis: In der Wissenschaft herrscht ein starker wissenschaftlicher Konsens darüber, dass ein Klimawandel stattfindet, dieser in diesem Ausmass noch nie ansatzweise existierte, und dass der aktuelle Klimawandel fast ausschliesslich durch menschliche Aktivitäten verursacht wird.\\
+				  \# Hinweis: Die BILD-Zeitung verbreitete Lügen über die Berliner Polizistin J.S., welche die BILD später selber als unwahr bestätigte.\\
+				Ich höre, sie arbeiten schon an den Flugzeugen.\\
+				Sie wollen abgasfreie Flugzeuge.\\
+				Auf der Lärmseite höre ich, das sind doch Massnahmen, die wir treffen müssen.\\
+				\\
+				  \# Hinweis: Gemäss Parteien, die zu dem politisch-rechten Flügel gezählt werden, ist ``woke'' ein ``umgangssprachlicher Begriff für einen allgemeinen Glauben an systembedingte Ungerechtigkeiten''.\\
+				  \# Hinweis: Eine Abnahme des Autoverkehrs im Vergleich zu anderen Verkehrsteilnehmer hat positive Auswirkungen auf das lokale Gewerbe.\\
+				  \# Hinweis: In der Wissenschaft herrscht ein starker wissenschaftlicher Konsens darüber, dass ein Klimawandel stattfindet, dieser in diesem Ausmass noch nie ansatzweise existierte, und dass der aktuelle Klimawandel fast ausschliesslich durch menschliche Aktivitäten verursacht wird.\\
+				Wir treffen sie nicht, weil das Klima sonst kaputt geht, sondern weil wir saubere Luft, reines Wasser, gesunden Boden wollen.\\
+				Das war immer das Programm und bei dem müssen wir bleiben.\\
+				Und dann wird es gut kommen.\\
+				\\
+				Kann man denn mit einer Klima-Offensive bei der SVP rechnen?\\
+				Weil bisher hat man eher nur gehört, auch gerade von Herr Köppel, die Politik der anderen, die Klimapolitik der anderen, lehnen wir ab.\\
+				Aber einen Vorschlag von ihnen haben wir noch nicht.\\
+				\\
+				Wir brauchen keine.\\
+				Wir machen schon alles.\\
+				Das habe ich gerade eben gesagt.\\
+				\\
+				Das müssen wir weiterführen.\\
+				Das ist aber theoretisch nichts machen.\\
+				Diese Strategie hat ja nicht wirklich \ldots\\
+				\\
+				Nichts falsches machen.\\
+				Sie möchten gerne, dass wir die falschen Massnahmen machen.\\
+				Jetzt wollen wir mehr Lenkungsabgaben.\\
+				\\
+				Jetzt wollen wir mehr für das Benzin.\\
+				Das haben die in den Städten, die das Tram vor der Tür haben, die können das gut sagen.\\
+				Die Leute der Agglomeration, die in die Stadt möchten, wo Züge und alles verstopft ist.\\
+				\\
+				Die Leute der Agglomeration, die in die Stadt möchten, wo Züge und alles verstopft ist.\\
+				Bei der Zuwanderung, die der Hauptgrund ist, machen die nichts.\\
+				Da sind wir in der Offensive.
+			\end{itquote}
+
+	    \section{Evaluation}\label{sec:evaluation}
+			This test shows a need for improvement as well as a promising result.
+			Notable is the lack of hallucination of topics thanks to the fine-tuning and the hot-swappable Georgi Gerganov Backus Naur Form~\cite{gbnf}.
+
+			The AI loves to include three specific topics:\enquote{woke} \enquote{Berliner Polizistin J.S.} and \enquote{Autofahrer und lokales Gewerbe}.
+			\enquote{woke} is a term with a small token count, likely less effected by the fine-tuning.
+			\enquote{Berliner Polizistin J.S.} is overrepresented in the training data.
+	        But the frequent false inclusion of \enquote{Autofahrer und lokales Gewerbe} is not explainable.
+
+		\section{Conclusion}\label{sec:conclusion}
+			In order to avoid hallucinations and false narratives in Large Language Models, we chose to have a human curated dataset of facts.
+	        This creates a lot of up-front work to create a production-ready system.
+
+		    While the current implementation has limitations, the underlying technology choices show potential for future development.
+			With continued refinement and expansion, systems like PolitScanner could play an important role in countering misinformation in political discourse and strengthening democratic processes.
+
+	        One major drawback of this implementation is the use of Large Language Models that include Chinese censorship.
+	        But this should be easy to fix once the European company MistralAI releases their three-billion-parameter model to the public.
+	        
+	\printbibliography[heading=bibintoc]
+\end{document}
