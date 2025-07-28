@@ -6,6 +6,11 @@ from json import load as json_load
 
 
 def main() -> None:
+    """
+    Creates and populates the ChromaDB vector database with political statements.
+
+    :return: None
+    """
     if exists(abspath('./database.chroma')):
         return None
     client = chromadb.PersistentClient(path=abspath('./database.chroma'))
