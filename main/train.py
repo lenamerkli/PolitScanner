@@ -19,6 +19,11 @@ BASE_MODEL_NAME = 'unsloth/Qwen3-1.7B-unsloth-bnb-4bit'
 
 
 def formatting_prompts_func(examples):
+    """
+    Convert chatml into text (Qwen3 only)
+    :param examples: a LazyBatch object
+    :return: dictionary with texts
+    """
     convos = examples['messages']
     texts = [f"<|im_start|>user\n{convo[0]['content']}\n/no_think\n<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n{convo[1]['content']}" for convo in convos]
     return {'text' : texts,}
@@ -50,13 +55,13 @@ def main() -> None:
         r=16,
         target_modules=['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj',],
         lora_alpha=16,
-        lora_dropout=0,  # Supports any, but = 0 is optimized
-        bias='none',  # Supports any, but = 'none' is optimized
-        use_gradient_checkpointing=False,  # True or 'unsloth' for very long context
+        lora_dropout=0,
+        bias='none',
+        use_gradient_checkpointing=False,
         random_state=SEED,
         max_seq_length=MAX_SEQ_LENGTH,
-        use_rslora=False,  # We support rank stabilized LoRA
-        loftq_config=None,  # And LoftQ
+        use_rslora=False,
+        loftq_config=None,
     )
     trainer = SFTTrainer(
         model=model,

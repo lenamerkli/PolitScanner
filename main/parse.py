@@ -9,21 +9,28 @@ from tqdm import tqdm
 
 
 def main() -> None:
+    """
+    Parse `data.txt` into a jsonl file which unsloth can understand
+    :return: None
+    """
     with open('data.txt', 'r') as f:
         file = f.read()
     sentences = [i.strip() for i in file.split('\n') if len(i.strip()) > 0]
     with open('train.jsonl', 'w', encoding='utf-8') as out_file:
         for i in tqdm(range(0, len(sentences) - 3, 1)):
+            # Create overlapping chunks of 3 sentences (like in `main.py`)
             if i == 0:
                 chunk = ['EMPTY'] + sentences[:4]
             elif i + 3 >= len(sentences):
                 chunk = sentences[-5:-1] + ['EMPTY']
             else:
                 chunk = sentences[i - 1:i + 4]
+            # Query the vector database
             db_results = db_read([v.split(' #')[0] for v in chunk if v != 'EMPTY'])
             if len(db_results['ids'][0]) == 0:
                 continue
             topic_ids = []
+            # check if the results are below a certain threshold
             for j, result in enumerate(db_results['ids'][0]):
                 if db_results['distances'][0][j] < MAX_DIFFERENCE:
                     id_ = result.split('-')[0]
@@ -35,6 +42,7 @@ def main() -> None:
                 topic_ids.append('0')
             topics = []
             titles = {}
+            # Load the information about the relevant topics
             for topic_id in topic_ids:
                 with open(Path(__file__).resolve().parent.parent.absolute().__str__() + f"/data/parsed/{topic_id}.json", 'r') as f:
                     topics.append(json_load(f))
@@ -44,8 +52,8 @@ def main() -> None:
             for topic in topics:
                 if len(formatted_topics) > 0:
                     formatted_topics += '\n'
-                # formatted_topics += f"'{topic['topic']}' - Beispielsätze:\n{'\n'.join('- ' + statement for i, statement in enumerate(topic['original_statements']) if i < 3)}"
                 formatted_topics += f"'{topic['topic']}'"
+            # Format the prompt
             user = PROMPT.replace('{TOPICS}', formatted_topics)
             for j, sentence in enumerate(chunk):
                 user = user.replace('{' + f"SENTENCE_{j+1}" + '}', sentence.split(' #')[0])
@@ -59,6 +67,7 @@ def main() -> None:
             for v in sorted(correct_topics):
                 if v not in correct_topics_sorted:
                     correct_topics_sorted.append(v)
+            # save the conversation in chatml format to disk
             assistant = f"```python\n[{', '.join(["'" + v + "'" for v in correct_topics])}]\n```"
             line = {"messages": [{"role": "user", "content": user}, {"role": "assistant", "content": assistant}]}
             line = json_dumps(line)
