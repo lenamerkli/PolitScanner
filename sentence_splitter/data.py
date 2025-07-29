@@ -1,3 +1,4 @@
+# Base text stems from `parlament.ch` and were annotated by the developers
 DATA = [
     {
         'string': 'Der Bundesrat wird beauftragt, den linksrheinischen NEAT-Zubringer Antwerpen–Basel als zweite nördliche Zulaufstrecke zeitnah auszubauen. Insbesondere soll die Schweiz die dafür erforderliche Profilanpassung der Vogesen-Tunnel vollständig finanzieren und hierfür vorrangig die freiwerdenden Mittel der Rollenden Landstrasse (RoLa) aus den Jahren 2026–2028 einsetzen.',
