@@ -1,3 +1,13 @@
+---
+language:
+  - de
+license: MIT
+base_model: unsloth/Qwen3-1.7B-unsloth-bnb-4bit
+library_name: gguf
+base_model_relation: finetune
+tags:
+  - text-generation
+---
 # PolitScanner
 
 ## Abstract
