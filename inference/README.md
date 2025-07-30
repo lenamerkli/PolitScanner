@@ -1,7 +1,7 @@
 ---
 language:
   - de
-license: MIT
+license: mit
 base_model: unsloth/Qwen3-1.7B-unsloth-bnb-4bit
 library_name: gguf
 base_model_relation: finetune
@@ -34,7 +34,7 @@ More information can be found at [www.ki-challenge.ch](https://www.ki-challenge.
 
 ## Paper
 
-Read the full paper [here](https://huggingface.co/lenamerkli/PolitScanner/blob/main/PolitScanner.pdf).
+Read the full paper [here](https://huggingface.co/lenamerkli/PolitScanner/blob/main/politscanner.pdf).
 
 ## Installation
 
