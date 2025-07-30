@@ -15,6 +15,8 @@ An entry for the swiss AI challenge 2025 to detect common false narratives and f
   - [llama.cpp](#llamacpp)
     - [Shared memory](#enable-shared-memory-optional)
   - [Unsloth](#unsloth)
+- [Contributing](#contributing)
+  - [Topics](#topics)
 - [Supported GPUs](#supported-gpus)
   - [Desktop GPUs](#desktop-gpus)
   - [Mobile GPUs](#mobile-gpus)
@@ -335,6 +337,36 @@ Update protobuf:
 ```shell
 pip install protobuf==5.29.4 --upgrade
 ```
+
+## Contributing
+
+### Topics
+
+To add a new topic, add a new `.txt` file to the `data/raw` directory.
+For simplicity, all file names are numbered.
+The file should have the following structure:
+
+```text
+{{ Topic name }}
+---
+{{ First statement }}
+
+{{ Second statement }}
+
+{{ Third statement }}
+
+{{ ... }}
+---
+{{ Ground truth }}
+---
+{{First source for the ground truth}}
+
+{{Second source for the ground truth}}
+
+{{ ... }}
+```
+
+After that, add training data for that topic into the `/main/data.txt` file.
 
 ## Supported GPUs
 
